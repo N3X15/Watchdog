@@ -1,0 +1,11 @@
+# This is how to handle stupid shit like ULX having all their projects in one directory.
+# Maintainer - N3X15
+addons:
+  ulx:
+    type: lua
+    repo:
+      remote: https://github.com/Nayruden/Ulysses.git
+      type: git
+      subdirs:
+        'ulib': 'ulib'
+        'ulx': 'ulx'
