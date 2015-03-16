@@ -92,6 +92,5 @@ class VDFFile:
             f.write(self.rootnode.serialize())
         
     def Load(self, filename):
-        
-        with open(filename, 'w') as f:
-            f.write(self.rootnode.serialize())
+        with open(filename, 'r') as f:
+            self.rootnode.Parse(f.read())

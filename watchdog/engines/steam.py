@@ -7,6 +7,9 @@ from buildtools import os_utils, ENV, Config
 from valve.source.a2s import ServerQuerier
 from pprint import pprint
 from valve.source.rcon import RCON
+import shutil
+from watchdog.steamtools.vdf import VDFFile
+from watchdog.utils import md5sum, del_empty_dirs
 
 STEAMCMD_USERNAME = None
 STEAMCMD_PASSWORD = None
@@ -125,6 +128,99 @@ class SourceEngine(WatchdogEngine):
                     rcon('say [Watchdog] Update detected, restarting in {time} seconds.'.format(time=wait))
                     time.sleep(wait)
                 rcon('say [Watchdog] Update detected, restarting now.')
+                
+    def compressFile(self, src, dest):
+        destdir = os.path.dirname(dest)
+        if not os.path.isdir(destdir):
+            os.makedirs(destdir)
+            log.info('Created %s', destdir)
+        shutil.copy2(src, dest)
+        level = str(self.config.get('fastdl.compression-level', 9))
+        level = max(min(level, 1), 9)
+        # -f = force overwrite
+        # -z = compress
+        # -q = quiet
+        # -1-9 = compression level (fast-best)
+        cmd(['bzip2', '-zfq' + str(level), dest], critical=True)
+        
+    def updateFastDL(self):
+            self.fastDLPaths = []
+            gamepath = os.path.join(self.gamedir, self.game_content.game)
+            hashes={}
+            if os.path.exists('fastdl.md5s'):
+                try:
+                    vdf = VDFFile()
+                    vdf.Load('fastdl.md5s')
+                    hashes=vdf.rootnode.children['checksums']
+                except:
+                    log.error('Error loading checksum cache.')
+                    
+            destdir = self.config.get('fastdl.destination', '')
+            exclude_dirs = self.config.get('fastdl.exclude-dirs', ['.git', '.svn'])
+            include_exts = self.config.get('fastdl.include-exts', ["mdl", "vmt", "vtf", "wav", 'mp3', 'bsp']);
+            addon_dirs = ['addons','gamemodes']
+            with log.info('Updating FastDL for {}...'.format(gamepath)):
+                with TimeExecution('Updated files'):
+                    for root, dirs, files in os.walk(gamepath):
+                        for file in files:
+                            fullpath = os.path.join(root, file)
+                            _, ext = os.path.splitext(fullpath)
+                            ext = ext.strip('.')
+                            if ext not in include_exts: continue
+                            relpath = os.path.relpath(fullpath, gamepath)
+                            relpathparts = relpath.split(os.sep)
+                            if relpathparts[0] in addon_dirs:
+                                relpathparts = relpathparts[2:]
+                            ignore = False
+                            for relpathpart in relpathparts:
+                                if relpathpart in exclude_dirs:
+                                    ignore = True
+                            if ignore: continue
+                            relpath = '/'.join(relpathparts)
+                            self.fastDLPaths.append(relpath)
+                            md5 = md5sum(fullpath)
+                            if fullpath in hashes and hashes[relpath] == md5:
+                                # We cool
+                                continue
+                            hashes[relpath]=md5
+                            destfile = os.path.join(destdir, os.sep.join(relpathparts))
+                            self.compressFile(fullpath, destfile)
+                #sys.exit(1)
+                with TimeExecution('Removed dead files'):
+                    for root, dirs, files in os.walk(destdir):
+                        for file in files:
+                            remove = False
+                            fullpath = os.path.join(root, file)
+                            realpath = fullpath
+                            if fullpath.endswith('.bz2'):
+                                fullpath = fullpath[:-4]
+                            _, ext = os.path.splitext(fullpath)
+                            ext = ext.strip('.')
+                            if ext not in include_exts: 
+                                remove = True
+                            relpath = os.path.relpath(fullpath, destdir)
+                            relpathparts = relpath.split(os.sep)
+                            if relpathparts[0] in addon_dirs:
+                                relpathparts = relpathparts[1:]
+                            for relpathpart in relpathparts:
+                                if relpathpart in exclude_dirs:
+                                    remove = True
+                            relpath = '/'.join(relpathparts)
+                            if relpath not in self.fastDLPaths:
+                                remove = True
+                            if remove: 
+                                log.info('Removing %s...', relpath)
+                                os.remove(realpath)
+                with TimeExecution('Removed dead directories'):
+                    del_empty_dirs(destdir)
+                VDFFile({'checksums':hashes}).Save('fastdl.md5s')
+                
+    def updateAddons(self):
+        WatchdogEngine.updateAddons(self)
+        
+        # Update FastDL
+        if self.config.get('fastdl.destination', None) is not None:
+            self.updateFastDL()
             
     def pingServer(self, noisy=False):
         if self.process is None or not self.process.is_running():

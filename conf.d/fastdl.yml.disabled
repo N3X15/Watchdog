@@ -1,0 +1,22 @@
+fastdl:
+  # Where your content will be served from
+  destination: /path/to/fastdl/dir
+  
+  # bzip2 compression level
+  #  1 = fast processing, big file
+  #  9 = slow processing, tiny file (modern systems should be able to handle this)
+  compression-level: 9
+  
+  # Directories to exclude
+  exclude-dirs:
+    - .git
+    - .svn
+  # Extensions to include (no dot)
+  include-exts:
+    - mdl
+    - vmt
+    - vtf
+    - wav
+    - mp3
+    - bsp
+  
