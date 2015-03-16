@@ -61,6 +61,8 @@ class WatchdogEngine(object):
         return
     
     def applyUpdates(self, restart=True):
+        if self.process and self.process.is_running():
+            self.updateAlert()
         if restart: self.end_process()
         self.updateContent()
         self.updateAddons()
@@ -95,6 +97,9 @@ class WatchdogEngine(object):
     def updateConfig(self):
         if self.configrepo is not None:
             self.configrepo.update()
+            
+    def updateAlert(self):
+        pass
     
     def pingServer(self):
         return False

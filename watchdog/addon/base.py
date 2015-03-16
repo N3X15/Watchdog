@@ -7,7 +7,6 @@ import os, logging
 
 from buildtools.bt_logging import log
 
-
 def _AddonType(_id=None):
     registry = {}
     def wrap(f):

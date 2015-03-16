@@ -1,4 +1,14 @@
-import collections
+import collections, logging, pprint
+import pyparsing as pyp
+from collections import OrderedDict
+
+def _toDict(s,l,t):
+    out = {}
+    #print(t[0])
+    for k,v in t:
+        out[k]=v
+    return out
+    
 class VDFNode:
     def __init__(self, root=False):
         self.children = collections.OrderedDict()
@@ -14,6 +24,29 @@ class VDFNode:
                 v = VDFNode.FromDict(v, False)
             node.children[k] = v
         return node
+        
+    @classmethod
+    def Parse(cls,string,errmethod=logging.error):
+        Comment = pyp.dblSlashComment
+        OpenBracket = pyp.Suppress('{')
+        CloseBracket = pyp.Suppress('}')
+        Map = pyp.Forward()
+        Value = pyp.QuotedString('"',escChar='\\')
+        ValuePair = pyp.Group((Value + Value) | (Value + Map))
+        MapContents = pyp.ZeroOrMore(ValuePair).setParseAction(_toDict)
+        Map << OpenBracket + MapContents + CloseBracket
+        VDFSyntax = pyp.OneOrMore(ValuePair).setParseAction(_toDict)
+        VDFSyntax.ignore(Comment)
+        
+        try:
+            res = VDFSyntax.parseString(string)
+        except pyp.ParseException, err:
+            errmethod(err.line)
+            errmethod("-"*(err.column-1) + "^")
+            errmethod(err)
+            return None
+        #pprint.pprint(res)
+        return res.asList()[0]
             
     def serialize(self, level=0):
         o = ''
@@ -55,5 +88,10 @@ class VDFFile:
             self.rootnode = VDFNode.FromDict(value)
         
     def Save(self, filename):
+        with open(filename, 'w') as f:
+            f.write(self.rootnode.serialize())
+        
+    def Load(self, filename):
+        
         with open(filename, 'w') as f:
             f.write(self.rootnode.serialize())

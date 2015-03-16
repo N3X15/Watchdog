@@ -1,9 +1,12 @@
 import os, socket
 from watchdog.engines.base import WatchdogEngine, ConfigRepo
 from watchdog.steamtools import srcupdatecheck, sourcequery
-from buildtools.os_utils import cmd, cmd_daemonize, Chdir
+from buildtools.os_utils import cmd, cmd_daemonize, Chdir, TimeExecution
 from buildtools.bt_logging import log
 from buildtools import os_utils, ENV, Config
+from valve.source.a2s import ServerQuerier
+from pprint import pprint
+from valve.source.rcon import RCON
 
 STEAMCMD_USERNAME = None
 STEAMCMD_PASSWORD = None
@@ -16,7 +19,7 @@ class SteamContent(object):
     def LoadDefs(cls, dir):
         yml = Config(None)
         yml.LoadFromFolder(dir)
-        print(repr(yml.cfg))
+        #pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():
             idents = [appIdent] + appConfig.get('aliases', [])
             app = cls(appConfig)
@@ -25,7 +28,7 @@ class SteamContent(object):
             cls.All.append(app)
             for ident in idents:
                 cls.Lookup[ident] = cID
-        print(repr(cls.Lookup))
+        #pprint(cls.Lookup)
     
     @classmethod
     def Find(cls, appIdent):
@@ -104,26 +107,32 @@ class SourceEngine(WatchdogEngine):
             
         self.configrepo = ConfigRepo(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
         
+    def updateAlert(self):
+        address = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        wait = self.config.get('monitor.restart-wait', 30)
+        passwd = self.config.get('auth.rcon.password',None)
+        if passwd is None: return
+        with RCON(address,passwd) as rcon:
+            if wait > 0:
+                rcon('say [Watchdog] Update detected, restarting in %d seconds.')
+                time.sleep(wait)
+            rcon('say [Watchdog] Update detected, restarting now.')
+            
     def pingServer(self):
-        if self.process is not None and self.process.is_running():
-            # print(self.process.pid)
-            return True
-        return False
-        '''
+        if self.process is None or not self.process.is_running():
+            return False
+        
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         try:
-            log.info('Pinging %s:%d...',ip, port)
-            server = sourcequery.SourceQuery(ip, port, timeout=30.0)
-            info = server.info()
-            if info is None:
-                return False
-            else:
-                log.info('Received A2S_INFO reply in %ds', info['ping'])
-                return True
-        except socket.error as e:
+            #log.info('Pinging %s:%d...',ip, port)
+            server = ServerQuerier((ip,port),timeout=30)
+            #with TimeExecution('Ping'):
+            numplayers = server.get_info()['player_count']
+            #log.info('%d players connected.',response['player_count'])
+        except Exception as e:
             log.error(e)
             return False
-        '''
+        return True
 
     def checkForContentUpdates(self):
         for appID, content in self.content.items():

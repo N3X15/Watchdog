@@ -21,9 +21,22 @@ class VDFTests(unittest.TestCase):
         
         node = VDFNode.FromDict(input)
         out = node.serialize()
-        print(expected)
-        print(out)
         self.assertEqual(expected, out)
+    def test_deserialization(self):
+        from watchdog.steamtools.vdf import VDFNode
+        
+        input = '''
+// Comment
+"a" {
+    "b" "0"
+    "c" "Honk\\" honk."
+}
+        '''
+        
+        expected = {'a':{'b':'0','c':'Honk" honk.'}}
+
+        output = VDFNode.Parse(input)
+        self.assertEqual(expected, output)
                 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

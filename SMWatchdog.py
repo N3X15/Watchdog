@@ -19,15 +19,27 @@ import sys
 import time
 import urllib
 import platform
+import importlib
 
-try:
-	import yaml
-except:
-	print('YAML for Python 2.7 is not installed.  Please run "pip install yaml".')
+# pip package => module list
+import_packages={
+	'yaml':['yaml'],
+	'psutil':['psutil'],
+	'pyparsing':['pyparsing']
+}
+
+for pkg,modules in import_packages.items():
+	try:
+		for module in modules:
+			importlib.import_module(module)
+	except:
+		print('Failed to import {module}, which means {pkg} is not installed.  Please run "pip install {pkg}".'.format(module=module,pkg=pkg))
+		sys.exit(-1)
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
-print(repr(sys.path))
+sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
+#print(repr(sys.path))
 
 from watchdog.engines import SourceEngine, GModEngine
 from watchdog.engines.steam import SteamContent
