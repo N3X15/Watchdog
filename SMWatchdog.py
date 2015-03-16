@@ -29,7 +29,8 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
 print(repr(sys.path))
 
-from watchdog.engines import SourceEngine
+from watchdog.engines import SourceEngine, GModEngine
+from watchdog.engines.steam import SteamContent
 
 from buildtools import *
 from buildtools import os_utils
@@ -181,7 +182,9 @@ failChain = 0
 firstRun = True
 waiting_for_next_commit = False
 
-engine = SourceEngine(config)
+SteamContent.LoadDefs(os.path.join(script_dir,'games.d/'))
+
+engine = GModEngine(config)
 
 MAX_FAILURES = config.get('monitor.max-fails')
 

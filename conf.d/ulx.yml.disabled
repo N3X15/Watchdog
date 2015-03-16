@@ -9,3 +9,4 @@ addons:
       subdirs:
         'ulib': 'ulib'
         'ulx': 'ulx'
+        #'uclip': 'uclip'

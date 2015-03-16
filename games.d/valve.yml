@@ -1,0 +1,66 @@
+gamelist:
+  tf2:
+    id: 232250 # App ID
+    game: tf # Game folder name
+    name: TF2 Dedicated Server # Displayed in errors and status messages
+    depots: # Depot IDs made available (used in Garry's mod)
+      - tf
+  hl2mp:
+    id: 232370
+    game: hl2mp
+    name: HL2:DM Dedicated Server
+    depots:
+      - hl2mp
+  cstrike:
+    id: 90
+    aliases:
+      - css
+    game: cstrike
+    name: CS:S 1.6 Dedicated Server
+    depots: 
+      - cstrike
+  hl2:
+    id: 220
+    game: hl2
+    name: Half Life 2
+    requires-login: true
+    updatable: false
+    depots: 
+      - hl2
+  hl2ep1:
+    id: 380
+    aliases:
+      - ep1
+      - episodic
+    game: hl2
+    name: 'Half-Life 2: Episode One'
+    requires-login: true
+    updatable: false
+    depots: 
+      - episodic
+  hl2ep2:
+    id: 420
+    aliases:
+      - ep2
+    game: hl2
+    name: 'Half-Life 2: Episode Two'
+    requires-login: true
+    updatable: false
+    depots: 
+      - ep2
+  portal:
+    id: 400
+    game: portal
+    name: Portal
+    requires-login: true
+    updatable: false
+    depots: 
+      - portal
+  portal2:
+    id: 620
+    game: portal2
+    name: Portal
+    requires-login: true
+    depots: 
+      - portal2
+    

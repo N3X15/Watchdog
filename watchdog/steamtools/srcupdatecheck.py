@@ -40,16 +40,35 @@ else:
     import urllib.request
     import urllib.parse
 
-#try:
+# try:
 from buildtools.bt_logging import log
-#except:
+# except:
 #    import logging as log
 #
 # Steam API Call
 #
+
+class APICallError(Exception):
+    def __init__(self, raw_req, raw_res):
+        self.raw_request = raw_req
+        self.raw_response = raw_res
+        
+
+class APICallErrorResponse(APICallError):
+    def __init__(self, raw_req, raw_res):
+        APICallError.__init__(self, raw_req, raw_res)
+        self.message = raw_res['error']
+        
+    def __str__(self):
+        return 'API responded with error: {!r}'.format(self.message)
     
+class APICallBadResponse(APICallError):
+    def __str__(self):
+        return 'API responded with invalid XML.'
+    
+
 def SteamAPICall(path, rawargs={}):
-    with log.debug('Steam API Call[%s: %s]',path,rawargs):
+    with log.debug('Steam API Call[%s: %s]', path, rawargs):
         args = rawargs
         args['format'] = 'xml'
         if gPy3k:
@@ -64,13 +83,14 @@ def SteamAPICall(path, rawargs={}):
             else:
                 raw = urllib2.urlopen(url, timeout=10).read()
         except Exception:
-            log.error("API Call failed. URL: %r",url)
+            log.error("API Call failed. URL: %r", url)
             return False
         
         try:
             dom = xml.dom.minidom.parseString(raw)
         except Exception:
-            log.error("API Call - Failed to parse XML result\n\tURL:\t'%s'\n=== Raw ===\n%s\n===========",url, raw)
+            raise APICallBadResponse(url, raw)
+            # log.error("API Call - Failed to parse XML result\n\tURL:\t'%s'\n=== Raw ===\n%s\n===========",url, raw)
             return False
         
         response = dom.getElementsByTagName('response')
@@ -88,31 +108,37 @@ def SteamAPICall(path, rawargs={}):
                     ret[c.nodeName] = False
                 else:
                     ret[c.nodeName] = c.childNodes[0].data
-        log.debug(ret)
+                    
+        if ret['success'] != True:
+            raise APICallErrorResponse(url, ret)
         return ret
 
 # 1 Up to date, 0 not, -1 call failed
 # Note that the json returns 'version_is_listable', but valve never uses this,
 # optional updates don't bump their version # :(
 def RunCheck(no, appid, ver):
-    call = SteamAPICall('ISteamApps/UpToDateCheck/v0001', { 'appid': appid, 'version': ver })
-    if not call or call['success'] != True:
-        log.error("[%u] !! API Call did not succeed\n\tRaw:\t%s" % (no, call))
+    response = {}
+    try:
+        response = SteamAPICall('ISteamApps/UpToDateCheck/v0001', { 'appid': appid, 'version': ver })
+    except APICallError as e:
+        with log.error('[API Call #%u] %s', no, e):
+            log.error("Raw Request: %s", e.raw_request)
+            log.error("Raw Response: %s", e.raw_response)
         return -1
-    if call['up_to_date']:
+    if response['up_to_date']:
         log.debug("[%u] API returned up to date!" % (no))
         return 1
     else:
-        log.warn("[%u] API returned out of date - Version %s vs %s" % (no, ver.replace('.', ''), call['required_version']))
+        log.warn("[%u] API returned out of date - Version %r vs. %r" % (no, ver.replace('.', ''), response['required_version']))
         return 0
 
 # Rewrite of steam.inf parser - N3X
 
 # Use for broken steam.infs
 KNOWN_APPIDS = {
-    'cstrike': 90, # Doesn't specify appID.
+    'cstrike': 90,  # Doesn't specify appID.
 }
-def CheckForUpdates(steaminffile):
+def CheckForUpdates(steaminffile, quiet=False):
     if not os.path.isfile(steaminffile):
         log.error("File \"%s\" does not exist!" % steaminffile)
         return True  # Needs update
@@ -136,27 +162,28 @@ def CheckForUpdates(steaminffile):
         log.error(repr(vals))
         return True
     
-    log.info("Found patch version: %s, game: %s, appid: %s" % (ver, game, appID))
-    
-    # According to Tony, this API call can sometimes return out of date incorrectly (yay!)
-    # So we'll keep our stupid try-multiple-times logic
-    lastattempt = -1
-    attempt = 1
-    while True:
-        ret = RunCheck(attempt, appID, ver);
-        if (ret != -1):
-            if (ret == lastattempt):
-                if (ret == 1):
-                    log.info("Confirmed up to date [%u requests]" % (attempt))
-                    return False
-                else:
-                    log.info("Confirmed out of date [%u requests]" % (attempt))
-                    return True
-        else:
-            # In the case where we're chain-failing for some reason, don't hammer the API
-            time.sleep(5)
-        lastattempt = ret
-        attempt += 1
+    if not quiet: 
+        log.info("Checking %s... - AppID: %s, Version: %s", game, appID, ver)
+    with log:
+        # According to Tony, this API call can sometimes return out of date incorrectly (yay!)
+        # So we'll keep our stupid try-multiple-times logic
+        lastattempt = -1
+        attempt = 1
+        while True:
+            ret = RunCheck(attempt, appID, ver);
+            if (ret != -1):
+                if (ret == lastattempt):
+                    if (ret == 1):
+                        if not quiet: log.info("Up to date (Confirmed after %u requests)" % (attempt))
+                        return False
+                    else:
+                        if not quiet: log.info("Outdated (Confirmed after %u requests)" % (attempt))
+                        return True
+            else:
+                # In the case where we're chain-failing for some reason, don't hammer the API
+                time.sleep(5)
+            lastattempt = ret
+            attempt += 1
     
 if __name__ == '__main__':
     if not len(sys.argv) == 2:

@@ -10,8 +10,8 @@ addons:
       remote: https://github.com/wiremod/advduplicator.git
       type: git
     type: lua
-  wire-extras:
-    repo:
-      remote: https://github.com/wiremod/wire-extras.git
-      type: git
-    type: lua
+  #wire-extras:
+  #  repo:
+  #    remote: https://github.com/wiremod/wire-extras.git
+  #    type: git
+  #  type: lua

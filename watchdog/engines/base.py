@@ -1,4 +1,4 @@
-import psutil, os, hashlib
+import psutil, os, hashlib, time
 
 from buildtools.bt_logging import log
 from watchdog.addon import CreateAddon
@@ -36,20 +36,23 @@ class WatchdogEngine(object):
         self.configrepo = None
                 
     def find_process(self):
-        if self.process is None or self.process.is_running():
+        if self.process is None or not self.process.is_running():
             self.process = None
             for proc in psutil.process_iter():
                 try:
                     if proc.name() == self.processName:
                         self.process = proc
-                        log.info('Found gameserver running as process #{}'.format(self.process.pid))
+                        log.info('Found gameserver running as process #%s',self.process.pid)
                         break
                 except psutil.AccessDenied:
                     continue
             
     def end_process(self):
-        if self.process and self.process.is_running():
+        while self.process is not None and self.process.is_running():
             self.process.kill()
+            time.sleep(1)
+            self.find_process()
+        self.process=None
             
     def start_process(self):
         return
@@ -63,7 +66,7 @@ class WatchdogEngine(object):
         self.updateAddons()
         if restart: self.start_process()
         
-    def updateAddons(self):
+    def updateAddons(self): 
         with log.info('Updating addons...'):
             for id, addon in self.addons.items():
                 addon.update()
@@ -71,14 +74,15 @@ class WatchdogEngine(object):
             self.configrepo.update()
         
     def _checkAddonsForUpdates(self):
-        with log.info('Checking addons...'):
-            for id, addon in self.addons.items():
-                if not addon.isUp2Date():
-                    log.warn('Addon %s is out of date!', id)
-                    return True
+        for id, addon in self.addons.items():
+            if not addon.isUp2Date():
+                log.warn('Addon %s is out of date!', id)
+                return True
+        
         if not self.configrepo.isUp2Date():
-            log.warn('Configuration is out of date!', id)
+            log.warn('Configuration is out of date!')
             return True
+        
         return False
     
     def checkForUpdates(self):

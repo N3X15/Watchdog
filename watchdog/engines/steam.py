@@ -3,56 +3,113 @@ from watchdog.engines.base import WatchdogEngine, ConfigRepo
 from watchdog.steamtools import srcupdatecheck, sourcequery
 from buildtools.os_utils import cmd, cmd_daemonize, Chdir
 from buildtools.bt_logging import log
-from buildtools import os_utils, ENV
+from buildtools import os_utils, ENV, Config
+
+STEAMCMD_USERNAME = None
+STEAMCMD_PASSWORD = None
+STEAMCMD_STEAMGUARD = None
 
 class SteamContent(object):
-    def __init__(self, appid, cfg):
-        self.appID = appid
+    All = []
+    Lookup = {}
+    @classmethod
+    def LoadDefs(cls, dir):
+        yml = Config(None)
+        yml.LoadFromFolder(dir)
+        print(repr(yml.cfg))
+        for appIdent, appConfig in yml.get('gamelist', {}).items():
+            idents = [appIdent] + appConfig.get('aliases', [])
+            app = cls(appConfig)
+            app.aliases=idents
+            cID = len(cls.All)
+            cls.All.append(app)
+            for ident in idents:
+                cls.Lookup[ident] = cID
+        print(repr(cls.Lookup))
+    
+    @classmethod
+    def Find(cls, appIdent):
+        cID = cls.Lookup.get(appIdent, -1)
+        if cID == -1: return None
+        return cls.All[cID]
+            
+    def __init__(self, cfg):
+        self.appID = cfg['id']
         self.appName = cfg['name']
-        self.game = cfg.get('game','')
+        self.game = cfg.get('game', '')
         self.config = cfg
-        self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(appid)))
-        self.steamInf = os.path.join(self.destination, cfg['game'], 'steam.inf')
+        self.depots = cfg.get('depots', [])
+        self.updatable = cfg.get('updatable', True)
+        self.requires_login = cfg.get('requires-login', False)
+        self.aliases=[]
+        
+    def Configure(self, cfg):
+        if self.requires_login:
+            if STEAMCMD_USERNAME is None or STEAMCMD_PASSWORD is None:
+                log.error('%s requires a username and password to access.', self.appName)
+                sys.exit(1)
+        self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
+        self.steamInf = None
+        if self.game != '':
+            self.steamInf = os.path.join(self.destination, self.game, 'steam.inf')
         
     def IsUpdated(self):
-        return not srcupdatecheck.CheckForUpdates(self.steamInf)
+        'Returns false if outdated.'
+        if not self.updatable: 
+            return os.path.isfile(self.steamInf)
+        return not srcupdatecheck.CheckForUpdates(self.steamInf, quiet=True)
         
     def Update(self):
         with log.info('Updating content for %s (#%s)...', self.appName, self.appID):
+            login = ['anonymous']
+            if STEAMCMD_USERNAME and STEAMCMD_PASSWORD:
+                login=[STEAMCMD_USERNAME,STEAMCMD_PASSWORD]
+                if STEAMCMD_STEAMGUARD:
+                    login.append(STEAMCMD_STEAMGUARD)
             shell_cmd = [
                 STEAMCMD,
-                '+login', 'anonymous',
+                '+login']+login+[
                 '+force_install_dir', self.destination,
                 '+app_update', self.appID,
                 'validate',
                 '+quit'
             ]
-            cmd(shell_cmd, echo=True, critical=True)
+            cmd(shell_cmd, echo=False, critical=True)
 
 class SourceEngine(WatchdogEngine):
     def __init__(self, cfg):
-        global STEAMCMD
+        global STEAMCMD,STEAMCMD_PASSWORD,STEAMCMD_STEAMGUARD,STEAMCMD_USERNAME
+        
         super(SourceEngine, self).__init__(cfg)
+        
+        STEAMCMD_USERNAME=cfg.get('auth.steam.username',None)
+        STEAMCMD_PASSWORD=cfg.get('auth.steam.password',None)
+        STEAMCMD_STEAMGUARD=cfg.get('auth.steam.steamguard',None)
         
         STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
         
         self.content = {}
-        self.game_content=None
-        for appid, ccfg in cfg['content'].items():
-            aID = int(appid)
-            self.content[aID] = SteamContent(aID, ccfg)
-            if ccfg.get('dir','') == self.gamedir:
-                self.game_content=self.content[aID]
+        self.game_content = None
+        for appIdent, appCfg in cfg['content'].items():
+            app = SteamContent.Find(appIdent)
+            if app is None:
+                log.warn('Unable to find app "%s". Skipping.', appIdent)
+                continue
+            app.Configure(appCfg)
+            self.content[app.appID] = app
+            if app.destination == self.gamedir:
+                self.game_content = app
+                log.info('Found target game: %s',app.appName)
             
-        self.configrepo = ConfigRepo(cfg.get('git.config', {}), os.path.join(self.gamedir,self.game_content.game))
+        self.configrepo = ConfigRepo(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
         
     def pingServer(self):
         if self.process is not None and self.process.is_running():
-            print(self.process.pid)
+            # print(self.process.pid)
             return True
         return False
-
+        '''
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         try:
             log.info('Pinging %s:%d...',ip, port)
@@ -66,11 +123,12 @@ class SourceEngine(WatchdogEngine):
         except socket.error as e:
             log.error(e)
             return False
+        '''
 
     def checkForContentUpdates(self):
         for appID, content in self.content.items():
             if not content.IsUpdated():
-                log.warn('AppID %s is out of date!',appID)
+                log.warn('AppID %s is out of date!', appID)
                 return True
         return False
     

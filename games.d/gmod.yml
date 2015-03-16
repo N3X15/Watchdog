@@ -1,0 +1,7 @@
+gamelist:
+  garrysmod:
+    id: 4020
+    game: garrysmod
+    name: Garry's Mod Dedicated
+    #depots:
+    #  - garrysmod
