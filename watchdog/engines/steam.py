@@ -146,19 +146,19 @@ class SourceEngine(WatchdogEngine):
     def updateFastDL(self):
             self.fastDLPaths = []
             gamepath = os.path.join(self.gamedir, self.game_content.game)
-            hashes={}
+            hashes = {}
             if os.path.exists('fastdl.md5s'):
                 try:
                     vdf = VDFFile()
                     vdf.Load('fastdl.md5s')
-                    hashes=vdf.rootnode.children['checksums']
-                except:
-                    log.error('Error loading checksum cache.')
+                    hashes = vdf.rootnode.children['checksums']
+                except Exception as e:
+                    log.error('Error loading checksum cache: %s', e)
                     
             destdir = self.config.get('fastdl.destination', '')
             exclude_dirs = self.config.get('fastdl.exclude-dirs', ['.git', '.svn'])
             include_exts = self.config.get('fastdl.include-exts', ["mdl", "vmt", "vtf", "wav", 'mp3', 'bsp']);
-            addon_dirs = ['addons','gamemodes']
+            addon_dirs = ['addons', 'gamemodes']
             with log.info('Updating FastDL for {}...'.format(gamepath)):
                 with TimeExecution('Updated files'):
                     for root, dirs, files in os.walk(gamepath):
@@ -182,10 +182,10 @@ class SourceEngine(WatchdogEngine):
                             if fullpath in hashes and hashes[relpath] == md5:
                                 # We cool
                                 continue
-                            hashes[relpath]=md5
+                            hashes[relpath] = md5
                             destfile = os.path.join(destdir, os.sep.join(relpathparts))
                             self.compressFile(fullpath, destfile)
-                #sys.exit(1)
+                # sys.exit(1)
                 with TimeExecution('Removed dead files'):
                     for root, dirs, files in os.walk(destdir):
                         for file in files:

@@ -93,4 +93,4 @@ class VDFFile:
         
     def Load(self, filename):
         with open(filename, 'r') as f:
-            self.rootnode.Parse(f.read())
+            self.rootnode.children = VDFNode.Parse(f.read())

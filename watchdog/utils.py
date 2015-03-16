@@ -12,9 +12,13 @@ def md5sum(filename):
         return d.hexdigest().upper()
 
 def del_empty_dirs(src_dir):
-    for dirpath, dirnames, filenames in os.walk(src_dir, topdown=False):  # Listing the files
-        if dirpath == src_dir:
-            break
-        if len(filenames) == 0 and len(dirnames) == 0:
-            log.info('Removing %s (empty)', dirpath)
-            os.rmdir(dirpath)
+    ndeleted=-1
+    while ndeleted!=0:
+        ndeleted=0
+        for dirpath, dirnames, filenames in os.walk(src_dir, topdown=False):  # Listing the files
+            if dirpath == src_dir:
+                break
+            if len(filenames) == 0 and len(dirnames) == 0:
+                log.info('Removing %s (empty)', dirpath)
+                os.rmdir(dirpath)
+                ndeleted += 1
