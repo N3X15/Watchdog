@@ -244,7 +244,7 @@ while True:
 			if engine.checkForUpdates():
 				# send_nudge('Updates detected, restarting.')
 				log.warn('Updates detected')
-				engine.applyUpdates()
+				engine.applyUpdates(restart=True)
 		lastState = True
 		failChain = 0
 	firstRun = False

@@ -48,11 +48,14 @@ class WatchdogEngine(object):
                     continue
             
     def end_process(self):
-        while self.process is not None and self.process.is_running():
-            self.process.kill()
-            time.sleep(1)
-            self.find_process()
-        self.process=None
+        with log.info('Killing server...'):
+            while self.process is not None and self.process.is_running():
+                log.info('Killing process #%d...',self.process.pid)
+                self.process.kill()
+                self.process=None
+                time.sleep(1)
+                self.find_process()
+            self.process=None
             
     def start_process(self):
         return
@@ -61,7 +64,7 @@ class WatchdogEngine(object):
         return
     
     def applyUpdates(self, restart=True):
-        if self.process and self.process.is_running():
+        if restart and self.process and self.process.is_running():
             self.updateAlert()
         if restart: self.end_process()
         self.updateContent()

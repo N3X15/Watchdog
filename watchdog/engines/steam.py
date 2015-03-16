@@ -1,4 +1,4 @@
-import os, socket
+import os, socket, time
 from watchdog.engines.base import WatchdogEngine, ConfigRepo
 from watchdog.steamtools import srcupdatecheck, sourcequery
 from buildtools.os_utils import cmd, cmd_daemonize, Chdir, TimeExecution
@@ -19,16 +19,16 @@ class SteamContent(object):
     def LoadDefs(cls, dir):
         yml = Config(None)
         yml.LoadFromFolder(dir)
-        #pprint(yml.cfg))
+        # pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():
             idents = [appIdent] + appConfig.get('aliases', [])
             app = cls(appConfig)
-            app.aliases=idents
+            app.aliases = idents
             cID = len(cls.All)
             cls.All.append(app)
             for ident in idents:
                 cls.Lookup[ident] = cID
-        #pprint(cls.Lookup)
+        # pprint(cls.Lookup)
     
     @classmethod
     def Find(cls, appIdent):
@@ -44,7 +44,7 @@ class SteamContent(object):
         self.depots = cfg.get('depots', [])
         self.updatable = cfg.get('updatable', True)
         self.requires_login = cfg.get('requires-login', False)
-        self.aliases=[]
+        self.aliases = []
         
     def Configure(self, cfg):
         if self.requires_login:
@@ -66,12 +66,12 @@ class SteamContent(object):
         with log.info('Updating content for %s (#%s)...', self.appName, self.appID):
             login = ['anonymous']
             if STEAMCMD_USERNAME and STEAMCMD_PASSWORD:
-                login=[STEAMCMD_USERNAME,STEAMCMD_PASSWORD]
+                login = [STEAMCMD_USERNAME, STEAMCMD_PASSWORD]
                 if STEAMCMD_STEAMGUARD:
                     login.append(STEAMCMD_STEAMGUARD)
             shell_cmd = [
                 STEAMCMD,
-                '+login']+login+[
+                '+login'] + login + [
                 '+force_install_dir', self.destination,
                 '+app_update', self.appID,
                 'validate',
@@ -81,13 +81,13 @@ class SteamContent(object):
 
 class SourceEngine(WatchdogEngine):
     def __init__(self, cfg):
-        global STEAMCMD,STEAMCMD_PASSWORD,STEAMCMD_STEAMGUARD,STEAMCMD_USERNAME
+        global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME
         
         super(SourceEngine, self).__init__(cfg)
         
-        STEAMCMD_USERNAME=cfg.get('auth.steam.username',None)
-        STEAMCMD_PASSWORD=cfg.get('auth.steam.password',None)
-        STEAMCMD_STEAMGUARD=cfg.get('auth.steam.steamguard',None)
+        STEAMCMD_USERNAME = cfg.get('auth.steam.username', None)
+        STEAMCMD_PASSWORD = cfg.get('auth.steam.password', None)
+        STEAMCMD_STEAMGUARD = cfg.get('auth.steam.steamguard', None)
         
         STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
@@ -103,32 +103,42 @@ class SourceEngine(WatchdogEngine):
             self.content[app.appID] = app
             if app.destination == self.gamedir:
                 self.game_content = app
-                log.info('Found target game: %s',app.appName)
+                log.info('Found target game: %s', app.appName)
             
         self.configrepo = ConfigRepo(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
         
     def updateAlert(self):
-        address = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
         wait = self.config.get('monitor.restart-wait', 30)
-        passwd = self.config.get('auth.rcon.password',None)
+        passwd = self.config.get('auth.rcon.password', None)
         if passwd is None: return
-        with RCON(address,passwd) as rcon:
-            if wait > 0:
-                rcon('say [Watchdog] Update detected, restarting in %d seconds.')
-                time.sleep(wait)
-            rcon('say [Watchdog] Update detected, restarting now.')
+        with log.info('Sending warning via RCON to %s:%d...', ip, port):
+            if self.process is None or not self.process.is_running():
+                log.warn('Process is not running, skipping rcon warning.')
+                return
+            if not self.pingServer(noisy=True):
+                log.warn('PING failed, skipping rcon warning.') 
+                return
+            with RCON((ip, port), passwd) as rcon:
+                if wait > 0:
+                    rcon('say [Watchdog] Update detected, restarting in {time} seconds.'.format(time=wait))
+                    time.sleep(wait)
+                rcon('say [Watchdog] Update detected, restarting now.')
             
-    def pingServer(self):
+    def pingServer(self, noisy=False):
         if self.process is None or not self.process.is_running():
             return False
         
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        timeout = self.config.get('monitor.timeout', 30)
         try:
-            #log.info('Pinging %s:%d...',ip, port)
-            server = ServerQuerier((ip,port),timeout=30)
-            #with TimeExecution('Ping'):
-            numplayers = server.get_info()['player_count']
-            #log.info('%d players connected.',response['player_count'])
+            if noisy: log.info('Pinging %s:%d...', ip, port)
+            with log:
+                server = ServerQuerier((ip, port), timeout=timeout)
+                # with TimeExecution('Ping'):
+                numplayers = server.get_info()['player_count']
+                if noisy: log.info('%d players connected.', numplayers)
         except Exception as e:
             log.error(e)
             return False
