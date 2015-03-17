@@ -1,4 +1,4 @@
-import psutil, os, hashlib, time
+import psutil, os, hashlib, time, sys
 
 from buildtools.bt_logging import log
 from watchdog.addon import CreateAddon
@@ -6,15 +6,18 @@ from watchdog.addon.git import GitAddon
 from buildtools import os_utils
 import logging
 from buildtools.wrapper.git import GitRepository
+from watchdog.steamtools.vdf import VDFFile
+import yaml
 
 class ConfigRepo(GitAddon):
     def __init__(self, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
+        cfg={'repo':cfg}
         super(ConfigRepo, self).__init__('config', cfg, finaldir)
         self.rootdir = finaldir
         self.destination = os.path.expanduser('~/.smrepos/config-' + uid)
         self.repo = GitRepository(self.destination, self.remote)
-        #print('CONFIG {} @ {}'.format(id, self.destination))
+        # print('CONFIG {} @ {}'.format(id, self.destination))
     
 class WatchdogEngine(object):
     Name = "Base"
@@ -25,6 +28,10 @@ class WatchdogEngine(object):
         
         self.process = None
         self.processName = cfg.get('monitor.image')
+        
+        self.working_dir = os.getcwd()
+        self.cache_dir = os.path.join(self.working_dir, 'cache')
+        os_utils.ensureDirExists(self.cache_dir, mode=0700)
         
         self.addons = {}
         for id, acfg in self.config['addons'].items():
@@ -42,7 +49,7 @@ class WatchdogEngine(object):
                 try:
                     if proc.name() == self.processName:
                         self.process = proc
-                        log.info('Found gameserver running as process #%s',self.process.pid)
+                        log.info('Found gameserver running as process #%s', self.process.pid)
                         break
                 except psutil.AccessDenied:
                     continue
@@ -50,12 +57,12 @@ class WatchdogEngine(object):
     def end_process(self):
         with log.info('Killing server...'):
             while self.process is not None and self.process.is_running():
-                log.info('Killing process #%d...',self.process.pid)
+                log.info('Killing process #%d...', self.process.pid)
                 self.process.kill()
-                self.process=None
+                self.process = None
                 time.sleep(1)
                 self.find_process()
-            self.process=None
+            self.process = None
             
     def start_process(self):
         return
@@ -69,14 +76,28 @@ class WatchdogEngine(object):
         if restart: self.end_process()
         self.updateContent()
         self.updateAddons()
+        self.updateConfig()
         if restart: self.start_process()
         
     def updateAddons(self): 
         with log.info('Updating addons...'):
+            loadedAddons = {}
+            newAddons = {}
+            addonInfoFile = os.path.join(self.cache_dir, 'addons.yml')
+            if os.path.isfile(addonInfoFile):
+                with open(addonInfoFile, 'r') as f:
+                    loadedAddons = yaml.load(f)
             for id, addon in self.addons.items():
                 addon.update()
-        with log.info('Updating configuration...'):
-            self.configrepo.update()
+                newAddons[id] = addon.config
+            for id, addonCfg in loadedAddons.items():
+                if id not in newAddons:
+                    with log.info('Removing dead addon %r...', id):
+                        dest = self.config['paths']['addons'][addonCfg['type']]
+                        addon = CreateAddon(id, addonCfg, dest)
+                        addon.remove()
+            with open(addonInfoFile, 'w') as f:
+                yaml.dump(newAddons, f, default_flow_style=False)
         
     def _checkAddonsForUpdates(self):
         for id, addon in self.addons.items():
@@ -99,7 +120,8 @@ class WatchdogEngine(object):
     
     def updateConfig(self):
         if self.configrepo is not None:
-            self.configrepo.update()
+            with log.info('Updating configuration...'):
+                self.configrepo.update()
             
     def updateAlert(self):
         pass

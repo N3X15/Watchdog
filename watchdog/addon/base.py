@@ -6,6 +6,7 @@ Created on Mar 13, 2015
 import os, logging
 
 from buildtools.bt_logging import log
+from buildtools import os_utils
 
 def _AddonType(_id=None):
     registry = {}
@@ -37,6 +38,7 @@ class Addon(object):
     def __init__(self, id, cfg, dest):
         self.id = id
         self.config = cfg
+        self.repo_config = self.config.get('repo',{})
         self.log = logging.getLogger('addon.' + id)
         self.destination = os.path.expanduser(dest)
         
@@ -52,6 +54,9 @@ class Addon(object):
     def update(self):
         return False
     
+    def remove(self):
+        return False
+    
 class AddonDir(Addon):
     def __init__(self, id, cfg, dest):
         super(AddonDir, self).__init__(id, cfg, dest)
@@ -61,3 +66,10 @@ class AddonDir(Addon):
             self.log.error('Addon %s\'s directory is actually a file!', self.id)
             return False
         return True
+    
+    def remove(self):
+        if os.path.isdir(self.destination):
+            with os_utils.TimeExecution('Removed '+self.destination):
+                os_utils.safe_rmtree(self.destination)
+        else:
+            log.warn('Directory removal already done...?')

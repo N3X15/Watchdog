@@ -1,0 +1,6 @@
+addons:
+  wire-extras:
+    type: lua
+    repo:
+      remote: https://github.com/wiremod/wire-extras.git
+      type: git

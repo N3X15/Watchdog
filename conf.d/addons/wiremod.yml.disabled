@@ -1,0 +1,17 @@
+# All the wiremod stuff in one, nice bundle.
+addons:
+  wire:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/wiremod/wire.git
+  #advduplicator:
+  #  type: lua
+  #  repo:
+  #    type: git
+  #    remote: https://github.com/wiremod/advduplicator.git
+  advdupe2:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/wiremod/advdupe2.git

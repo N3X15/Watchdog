@@ -19,6 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # MODIFIED TO INTEGRATE WITH THINGS. - N3X15
+# MODIFIED TO HAVE LESS-HACKY ERROR HANDLING - N3X15
 
 import time
 import sys

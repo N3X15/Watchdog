@@ -160,6 +160,7 @@ default_config = {
 
 config = Config('SMWatchdog.yml', default_config)
 config.LoadFromFolder('conf.d/')
+config.set('paths.script',script_dir)
 
 LOGPATH = config.get('paths.crashlog', 'logs')
 

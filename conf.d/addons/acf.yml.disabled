@@ -1,0 +1,6 @@
+addons:
+  acf:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/nrlulz/ACF.git

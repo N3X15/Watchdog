@@ -79,6 +79,9 @@ class VDFNode:
         
     def __str__(self):
         return self.serialize()
+    
+    def toDict(self):
+        return dict(self.children)
 
 class VDFFile:
     def __init__(self, value=None):
@@ -86,6 +89,9 @@ class VDFFile:
             self.rootnode = VDFNode()
         else:
             self.rootnode = VDFNode.FromDict(value)
+            
+    def toDict(self):
+        return self.rootnode.toDict()
         
     def Save(self, filename):
         with open(filename, 'w') as f:
