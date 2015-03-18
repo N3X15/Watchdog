@@ -60,11 +60,12 @@ class WatchdogEngine(object):
     def end_process(self):
         while self.process is not None and self.process.is_running():
             with log.info('Ending process #%d...', self.process.pid):
-                p.terminate()
-                p.wait(timeout=10)
-                if p.is_running():
+                self.process.terminate()
+                self.process.wait(timeout=10)
+                if self.process.is_running():
                     with log.warn('Process failed to close in a timely manner, sending kill signal...'):
                         self.process.kill()
+                        self.process.wait(timeout=10) # To clean up zombies
                 self.process = None
                 time.sleep(1)
                 self.find_process()
