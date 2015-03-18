@@ -1,0 +1,6 @@
+addons:
+  spacebuild:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/SnakeSVx/spacebuild.git

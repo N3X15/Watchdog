@@ -13,6 +13,7 @@ def md5sum(filename):
 
 def del_empty_dirs(src_dir):
     ndeleted=-1
+    totalDel=0
     while ndeleted!=0:
         ndeleted=0
         for dirpath, dirnames, filenames in os.walk(src_dir, topdown=False):  # Listing the files
@@ -22,3 +23,5 @@ def del_empty_dirs(src_dir):
                 log.info('Removing %s (empty)', dirpath)
                 os.rmdir(dirpath)
                 ndeleted += 1
+                totalDel += 1
+    return totalDel

@@ -1,0 +1,6 @@
+addons:
+  sbep:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/SnakeSVx/sbep.git

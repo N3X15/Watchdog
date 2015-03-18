@@ -48,6 +48,9 @@ class WatchdogEngine(object):
             for proc in psutil.process_iter():
                 try:
                     if proc.name() == self.processName:
+                        if proc.status()==psutil.STATUS_ZOMBIE:
+                            log.warn('Detected zombie process #%s, skipping.',self.process.pid)
+                            continue
                         self.process = proc
                         log.info('Found gameserver running as process #%s', self.process.pid)
                         break
@@ -55,14 +58,17 @@ class WatchdogEngine(object):
                     continue
             
     def end_process(self):
-        with log.info('Killing server...'):
-            while self.process is not None and self.process.is_running():
-                log.info('Killing process #%d...', self.process.pid)
-                self.process.kill()
+        while self.process is not None and self.process.is_running():
+            with log.info('Ending process #%d...', self.process.pid):
+                p.terminate()
+                p.wait(timeout=10)
+                if p.is_running():
+                    with log.warn('Process failed to close in a timely manner, sending kill signal...'):
+                        self.process.kill()
                 self.process = None
                 time.sleep(1)
                 self.find_process()
-            self.process = None
+        self.process = None
             
     def start_process(self):
         return

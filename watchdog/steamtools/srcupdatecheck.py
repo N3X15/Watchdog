@@ -62,12 +62,26 @@ class APICallErrorResponse(APICallError):
         
     def __str__(self):
         return 'API responded with error: {!r}'.format(self.message)
+        
+
+class APICallKeyError(APICallError):
+    def __init__(self, raw_req, raw_res, key):
+        APICallError.__init__(self, raw_req, raw_res)
+        self.key = key
+        
+    def __str__(self):
+        return 'Expected key {!r} is missing from response.'.format(self.key)
     
 class APICallBadResponse(APICallError):
     def __str__(self):
         return 'API responded with invalid XML.'
     
 
+def expectKeyIn(key,raw_req,raw_res):
+    if key not in raw_res:
+        raise APICallError(raw_req,raw_res,key)
+    
+LAST_REQUEST=None
 def SteamAPICall(path, rawargs={}):
     with log.debug('Steam API Call[%s: %s]', path, rawargs):
         args = rawargs
@@ -110,6 +124,8 @@ def SteamAPICall(path, rawargs={}):
                 else:
                     ret[c.nodeName] = c.childNodes[0].data
                     
+        expectKeyIn('success', url, ret)
+        LAST_REQUEST=url
         if ret['success'] != True:
             raise APICallErrorResponse(url, ret)
         return ret
@@ -121,6 +137,8 @@ def RunCheck(no, appid, ver):
     response = {}
     try:
         response = SteamAPICall('ISteamApps/UpToDateCheck/v0001', { 'appid': appid, 'version': ver })
+        expectKeyIn('success', LAST_REQUEST, response)
+        expectKeyIn('up_to_date', LAST_REQUEST, response)
     except APICallError as e:
         with log.error('[API Call #%u] %s', no, e):
             log.error("Raw Request: %s", e.raw_request)
