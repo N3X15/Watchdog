@@ -68,7 +68,7 @@ class SteamContent(object):
     def Update(self):
         with log.info('Updating content for %s (#%s)...', self.appName, self.appID):
             login = ['anonymous']
-            if STEAMCMD_USERNAME and STEAMCMD_PASSWORD:
+            if self.requires_login and STEAMCMD_USERNAME and STEAMCMD_PASSWORD:
                 login = [STEAMCMD_USERNAME, STEAMCMD_PASSWORD]
                 if STEAMCMD_STEAMGUARD:
                     login.append(STEAMCMD_STEAMGUARD)
