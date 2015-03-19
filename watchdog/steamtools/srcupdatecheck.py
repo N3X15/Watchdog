@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# MODIFIED TO INTEGRATE WITH THINGS. - N3X15
+# MODIFIED TO BETTER INTEGRATE WITH THINGS. - N3X15
 # MODIFIED TO HAVE LESS-HACKY ERROR HANDLING - N3X15
 
 import time
@@ -169,6 +169,7 @@ def RunCheck(no, appid, ver):
 KNOWN_APPIDS = {
     'cstrike': 90,  # Doesn't specify appID.
 }
+
 def CheckForUpdates(steaminffile, quiet=False):
     if not os.path.isfile(steaminffile):
         log.error("File \"%s\" does not exist!" % steaminffile)

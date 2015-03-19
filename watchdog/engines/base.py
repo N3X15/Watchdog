@@ -13,7 +13,7 @@ from watchdog import utils
 class ConfigAddon(BasicAddon):
     def __init__(self, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
-        cfg['dir']=os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
+        cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
         BasicAddon.__init__(self, 'config', cfg)
         self.rootdir = finaldir
     
@@ -76,18 +76,25 @@ class WatchdogEngine(object):
         return
                 
     def updateContent(self):
-        return
+        '''True when content has changed.'''
+        return False
     
     def applyUpdates(self, restart=True):
         if restart and self.process and self.process.is_running():
             self.updateAlert()
         if restart: self.end_process()
-        self.updateContent()
-        self.updateAddons()
-        self.updateConfig()
+        
+        restartNeeded = False
+        if self.updateContent(): restartNeeded = True
+        if self.updateAddons(): restartNeeded = True
+        if self.updateConfig(): restartNeeded = True
+        if restartNeeded and not restart:
+            self.end_process()
+            
         if restart: self.start_process()
         
     def updateAddons(self): 
+        changed = False
         with log.info('Updating addons...'):
             loadedAddons = {}
             newAddons = {}
@@ -96,7 +103,11 @@ class WatchdogEngine(object):
                 with open(addonInfoFile, 'r') as f:
                     loadedAddons = yaml.load(f)
             for id, addon in self.addons.items():
-                addon.update()
+                if addon.update():
+                    log.info('%s has changed! Triggering restart.', id)
+                    changed = True
+                if id not in loadedAddons:
+                    log.info('%s is new! Triggering restart.', id)
                 newAddons[id] = addon.config
             for id, addonCfg in loadedAddons.items():
                 if id not in newAddons:
@@ -104,8 +115,10 @@ class WatchdogEngine(object):
                         dest = self.config['paths']['addons'][addonCfg['type']]
                         addon = CreateAddon(id, addonCfg, dest)
                         addon.remove()
+                        changed = True
             with open(addonInfoFile, 'w') as f:
                 yaml.dump(newAddons, f, default_flow_style=False)
+        return changed
         
     def _checkAddonsForUpdates(self):
         for id, addon in self.addons.items():
@@ -129,7 +142,9 @@ class WatchdogEngine(object):
     def updateConfig(self):
         if self.configrepo is not None:
             with log.info('Updating configuration...'):
-                self.configrepo.update()
+                if self.configrepo.update():
+                    return True
+        return False
             
     def updateAlert(self):
         pass

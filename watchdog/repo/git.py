@@ -40,16 +40,20 @@ class GitRepo(RepoDir):
         with log.info('Updating addon %s from a git repository...', self.addon.id):
             cleanup = self.config.get('cleanup', False)
             self.repo.CheckForUpdates(branch=self.branch)
+            old_commit = self.repo.current_commit
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
-            if 'subdirs' in self.config:
-                for src, dest in self.config['subdirs'].items():
-                    src = os.path.join(self.destination, src)
-                    dest = os.path.join(self.rootdir, dest)
-                    if cleanup: os_utils.safe_rmtree(dest)
-                    os_utils.copytree(src, dest)
-                    log.info('Copied %s -> %s', src, dest)
-            return True
+            if old_commit != self.repo.current_commit:
+                if 'subdirs' in self.config:
+                    with log.info('New commit detected (%s vs. %s), updating filesystem...',old_commit,self.repo.current_commit):
+                        for src, dest in self.config['subdirs'].items():
+                            src = os.path.join(self.destination, src)
+                            dest = os.path.join(self.rootdir, dest)
+                            if cleanup: os_utils.safe_rmtree(dest)
+                            os_utils.copytree(src, dest)
+                            log.info('Copied %s -> %s', src, dest)
+                return True
+        return False 
 
     def remove(self):
         AddonDir.remove(self)

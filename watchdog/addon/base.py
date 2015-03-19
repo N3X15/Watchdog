@@ -52,6 +52,7 @@ class Addon(object):
         return False
     
     def update(self):
+        '''Returns true if the state of the repo/addon changed. (Restarts server)'''
         return False
     
     def remove(self):
