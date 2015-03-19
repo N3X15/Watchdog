@@ -76,6 +76,10 @@ class APICallBadResponse(APICallError):
     def __str__(self):
         return 'API responded with invalid XML.'
     
+class APICallBadResponseStructure(APICallError):
+    def __str__(self):
+        return 'API responded with invalid XML structure.'
+    
 
 def expectKeyIn(key,raw_req,raw_res):
     if key not in raw_res:
@@ -110,6 +114,7 @@ def SteamAPICall(path, rawargs={}):
         
         response = dom.getElementsByTagName('response')
         if not len(response):
+            raise APICallBadResponseStructure(url, raw)
             return False
         
         ret = {}
@@ -123,11 +128,18 @@ def SteamAPICall(path, rawargs={}):
                     ret[c.nodeName] = False
                 else:
                     ret[c.nodeName] = c.childNodes[0].data
-                    
+        
+        # Check structure
+        # { response: { ... }}
+        if not isinstance(ret,dict):
+            log.info(type(ret))
+            raise APICallBadResponseStructure(url, raw)
+            
         expectKeyIn('success', url, ret)
         LAST_REQUEST=url
         if ret['success'] != True:
             raise APICallErrorResponse(url, ret)
+        
         return ret
 
 # 1 Up to date, 0 not, -1 call failed

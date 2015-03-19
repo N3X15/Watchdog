@@ -4,48 +4,46 @@ Created on Mar 13, 2015
 @author: Rob
 '''
 import os
-from watchdog.addon.base import AddonDir, AddonType
+from watchdog import utils
+from watchdog.repo.base import RepoDir, RepoType
 from buildtools.wrapper.git import GitRepository
 from buildtools import os_utils, log
 
-@AddonType('git')
-class GitAddon(AddonDir):
+@RepoType('git')
+class GitRepo(RepoDir):
     '''Addon stored in a git repository.
     '''
 
-    def __init__(self, id, cfg, dest):
-        super(GitAddon, self).__init__(id, cfg, dest)
-        # self.repo = None
-        # print(repr(self.repo_config))
-        self.remote = self.repo_config['remote']
-        self.branch = self.repo_config.get('branch', 'master')
-        if 'subdirs' in self.repo_config:
+    def __init__(self, addon, cfg, dest):
+        super(GitRepo, self).__init__(addon, cfg, dest)
+        self.remote = self.config['remote']
+        self.branch = self.config.get('branch', 'master')
+        if 'subdirs' in self.config:
             self.rootdir = os.path.dirname(self.destination)
-            self.destination = os.path.join(os.path.expanduser('~'), '.smwd_rootprojects', id)
+            self.destination = os.path.join(utils.getCacheDir(), 'repos', self.addon.id)
         self.repo = GitRepository(self.destination, self.remote, noisy_clone=True)
-        # print('ADDON {} @ {}'.format(id,dest))
         
     def validate(self):
-        return super(GitAddon, self).validate()
+        return super(GitRepo, self).validate()
         
     def preload(self):
         if not os.path.isdir(self.destination):
             self.repo.GetRepoState()
-            self.log.info('Addon {0} git repository on branch {1}, commit {2}.'.format(self.id, self.repo.current_branch, self.repo.current_commit))
+            self.log.info('Addon {0} git repository on branch {1}, commit {2}.'.format(self.addon.id, self.repo.current_branch, self.repo.current_commit))
         else:
-            self.log.warn('Addon {0} has not been cloned yet.', self.id)
+            self.log.warn('Addon {0} has not been cloned yet.', self.addon.id)
     
     def isUp2Date(self):
         return not self.repo.CheckForUpdates(branch=self.branch)
     
     def update(self):
-        with log.info('Updating addon %s...', self.id):
-            cleanup = self.repo_config.get('cleanup', False)
+        with log.info('Updating addon %s from a git repository...', self.addon.id):
+            cleanup = self.config.get('cleanup', False)
             self.repo.CheckForUpdates(branch=self.branch)
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
-            if 'subdirs' in self.repo_config:
-                for src, dest in self.repo_config['subdirs'].items():
+            if 'subdirs' in self.config:
+                for src, dest in self.config['subdirs'].items():
                     src = os.path.join(self.destination, src)
                     dest = os.path.join(self.rootdir, dest)
                     if cleanup: os_utils.safe_rmtree(dest)
@@ -55,8 +53,8 @@ class GitAddon(AddonDir):
 
     def remove(self):
         AddonDir.remove(self)
-        if 'subdirs' in self.repo_config:
-            for src, dest in self.repo_config['subdirs'].items():
+        if 'subdirs' in self.config:
+            for src, dest in self.config['subdirs'].items():
                 dest = os.path.join(self.rootdir, dest)
                 if os.path.isdir(dest):
                     with os_utils.TimeExecution('Removed ' + dest):

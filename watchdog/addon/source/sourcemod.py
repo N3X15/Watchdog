@@ -5,7 +5,9 @@ Created on Mar 12, 2015
 '''
 import os, sys, yaml, re, tempfile
 
-from buildtools import http
+from watchdog.addon.source.base import SourceEngineAddon
+
+from buildtools import http, os_utils
 from buildtools.bt_logging import log
 from buildtools.os_utils import Chdir
 
@@ -14,17 +16,32 @@ class SMOperatingSystem:
     LINUX = 'linux'
     MAC = 'mac'
 
-class SMUpdater(object):
+@AddonType('sourcemod')
+class SourceMod(SourceEngineAddon):
+    '''
+    SourceMod itself.
+    '''
 
-    def __init__(self, osID, versiongroup, destdir):
+    def __init__(self, id, cfg, dest):
+        super(GitAddon, self).__init__(id, cfg)
+
         self.smdrop_format = 'http://www.sourcemod.net/smdrop/{VERSION}/'
         # sourcemod-1.7.1-git5157-windows.zip
         self.reg_smdrop_filefields = re.compile('sourcemod-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|osx)\.[a-z\.]+')
         
-        self.os = osID
-        self.versiongroup = versiongroup
-        self.destdir=destdir
+        self.os=''
+        if sys.platform == 'win32':
+            self.os = SMOperatingSystem.WINDOWS
+        elif sys.platform == 'linux': 
+            self.os = SMOperatingSystem.LINUX
+        else:
+            self.os = SMOperatingSystem.MAC
+            
+        self.versiongroup = cfg['version_group']
+        self.destination=self.config.get('dir',self.gamedir)
+        self.avail_versions={}
         
+    def preload(self):
         self.avail_versions = {
             SMOperatingSystem.LINUX: [],
             SMOperatingSystem.MAC: [],
@@ -50,7 +67,10 @@ class SMUpdater(object):
         with open('.smupdater', 'w') as f:
             yaml.dump(cache,f, default_flow_style=False)
         
-    def FindLatest(self, stable=True):
+    def isUp2Date(self):
+        
+        
+    def _updateCheck(self, stable=True):
         self.base_uri = self.smdrop_format.format(VERSION=self.versiongroup)
         req = http.HTTPFetcher(self.base_uri)
         txt = req.GetString()

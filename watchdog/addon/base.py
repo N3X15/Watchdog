@@ -7,6 +7,7 @@ import os, logging
 
 from buildtools.bt_logging import log
 from buildtools import os_utils
+from watchdog.repo import CreateRepo
 
 def _AddonType(_id=None):
     registry = {}
@@ -35,12 +36,11 @@ class AddonType(object):
         return f
 
 class Addon(object):
-    def __init__(self, id, cfg, dest):
+    def __init__(self, id, cfg):
         self.id = id
         self.config = cfg
-        self.repo_config = self.config.get('repo',{})
+        self.repo_config = self.config.get('repo', {})
         self.log = logging.getLogger('addon.' + id)
-        self.destination = os.path.expanduser(dest)
         
     def validate(self):
         return False
@@ -57,19 +57,36 @@ class Addon(object):
     def remove(self):
         return False
     
-class AddonDir(Addon):
-    def __init__(self, id, cfg, dest):
-        super(AddonDir, self).__init__(id, cfg, dest)
+@AddonType('basic')
+class BasicAddon(Addon):
+    '''
+    Just grabs from a repo. NBD.
     
+    Used if `addon: basic` is specified. Also used by default.
+    '''
+    ClassDestinations = {}
+    def __init__(self, id, cfg):
+        super(BasicAddon, self).__init__(id, cfg)
+        if 'dir' not in cfg: 
+            self.clsType = cfg['type']
+            root=BasicAddon.ClassDestinations[self.clsType]
+            self.destination = os.path.join(root,id)
+        else:
+            self.destination=cfg['dir']
+        self.repo = CreateRepo(self, cfg['repo'], self.destination)
+        
     def validate(self):
-        if os.path.isfile(self.destination):
-            self.log.error('Addon %s\'s directory is actually a file!', self.id)
-            return False
-        return True
+        return self.repo.validate()
+        
+    def preload(self):
+        return self.repo.preload()
+    
+    def isUp2Date(self):
+        return self.repo.isUp2Date()
+    
+    def update(self):
+        return self.repo.update()
     
     def remove(self):
-        if os.path.isdir(self.destination):
-            with os_utils.TimeExecution('Removed '+self.destination):
-                os_utils.safe_rmtree(self.destination)
-        else:
-            log.warn('Directory removal already done...?')
+        return self.repo.remove()
+    

@@ -1,5 +1,5 @@
 import os, socket, time
-from watchdog.engines.base import WatchdogEngine, ConfigRepo
+from watchdog.engines.base import WatchdogEngine, ConfigAddon
 from watchdog.steamtools import srcupdatecheck, sourcequery
 from buildtools.os_utils import cmd, cmd_daemonize, Chdir, TimeExecution
 from buildtools.bt_logging import log
@@ -108,7 +108,7 @@ class SourceEngine(WatchdogEngine):
                 self.game_content = app
                 log.info('Found target game: %s', app.appName)
             
-        self.configrepo = ConfigRepo(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
+        self.configrepo = ConfigAddon(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
         
     def updateAlert(self):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)

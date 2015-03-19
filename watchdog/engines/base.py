@@ -1,23 +1,21 @@
 import psutil, os, hashlib, time, sys
 
 from buildtools.bt_logging import log
-from watchdog.addon import CreateAddon
-from watchdog.addon.git import GitAddon
+from watchdog.addon import CreateAddon, BasicAddon
 from buildtools import os_utils
 import logging
 from buildtools.wrapper.git import GitRepository
 from watchdog.steamtools.vdf import VDFFile
 import yaml
+import traceback
+from watchdog import utils
 
-class ConfigRepo(GitAddon):
+class ConfigAddon(BasicAddon):
     def __init__(self, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
-        cfg={'repo':cfg}
-        super(ConfigRepo, self).__init__('config', cfg, finaldir)
+        cfg['dir']=os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
+        BasicAddon.__init__(self, 'config', cfg)
         self.rootdir = finaldir
-        self.destination = os.path.expanduser('~/.smrepos/config-' + uid)
-        self.repo = GitRepository(self.destination, self.remote)
-        # print('CONFIG {} @ {}'.format(id, self.destination))
     
 class WatchdogEngine(object):
     Name = "Base"
@@ -33,10 +31,13 @@ class WatchdogEngine(object):
         self.cache_dir = os.path.join(self.working_dir, 'cache')
         os_utils.ensureDirExists(self.cache_dir, mode=0700)
         
+        BasicAddon.ClassDestinations = {}
+        for classID, classDest in self.config['paths']['addons'].items():
+            BasicAddon.ClassDestinations[classID] = classDest
+        
         self.addons = {}
         for id, acfg in self.config['addons'].items():
-            dest = self.config['paths']['addons'][acfg['type']]
-            addon = CreateAddon(id, acfg, dest)
+            addon = CreateAddon(id, acfg)
             if addon.validate():
                 self.addons[id] = addon
                 
@@ -48,8 +49,8 @@ class WatchdogEngine(object):
             for proc in psutil.process_iter():
                 try:
                     if proc.name() == self.processName:
-                        if proc.status()==psutil.STATUS_ZOMBIE:
-                            log.warn('Detected zombie process #%s, skipping.',self.process.pid)
+                        if proc.status() == psutil.STATUS_ZOMBIE:
+                            log.warn('Detected zombie process #%s, skipping.', self.process.pid)
                             continue
                         self.process = proc
                         log.info('Found gameserver running as process #%s', self.process.pid)
@@ -65,7 +66,7 @@ class WatchdogEngine(object):
                 if self.process.is_running():
                     with log.warn('Process failed to close in a timely manner, sending kill signal...'):
                         self.process.kill()
-                        self.process.wait(timeout=10) # To clean up zombies
+                        self.process.wait(timeout=10)  # To clean up zombies
                 self.process = None
                 time.sleep(1)
                 self.find_process()

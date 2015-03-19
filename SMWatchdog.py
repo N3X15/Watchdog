@@ -41,6 +41,7 @@ sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
 sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
 #print(repr(sys.path))
 
+from watchdog import utils 
 from watchdog.engines import SourceEngine, GModEngine
 from watchdog.engines.steam import SteamContent
 
@@ -49,6 +50,8 @@ from buildtools import os_utils
 from buildtools.wrapper import Git
 from buildtools.bt_logging import IndentLogger
 from buildtools.wrapper.git import GitRepository
+
+utils.script_dir=script_dir
 
 # @formatting:off
 default_config = {
@@ -205,7 +208,6 @@ is_posix = platform.system() != 'Windows'
 
 engine.find_process()
 engine.applyUpdates(restart=False)
-engine.updateConfig()
 	
 while True:
 	if waiting_for_next_commit:

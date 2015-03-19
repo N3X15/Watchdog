@@ -1,6 +1,11 @@
 import hashlib, os
 from buildtools.bt_logging import log
 
+script_dir=''
+
+def getCacheDir():
+    return os.path.join(script_dir,'cache')
+
 def md5sum(filename):
     with open(filename, mode='rb') as f:
         d = hashlib.md5()
