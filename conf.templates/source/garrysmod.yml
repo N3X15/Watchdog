@@ -58,8 +58,8 @@ git:
 monitor:
   # Process name to look for
   image: srcds_linux
-  # IP to ping
-  ip: 74.63.243.98
+  # IP to ping (PUBLIC IP!)
+  ip: 1.2.3.4
   # Port to ping
   port: 27015
   # How long to wait before timing out a ping (in seconds)
@@ -99,13 +99,14 @@ paths:
   crashlog: {{ home_dir }}/steam/crashlogs/
   # Directory from which to run srcds
   run: {{ game_dir }}
-  # Not used
+  # Not used yet
   stats: stats.json
   # SteamCMD directory
   steamcmd: {{ home_dir }}/steamcmd
   
-# Game config
-srcds:
+# Game daemon config
+daemon:
+  engine: srcds
   launcher: srcds_linux
   srcds_args:
     ip: 74.63.243.98

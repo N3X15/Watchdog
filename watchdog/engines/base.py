@@ -16,6 +16,33 @@ class ConfigAddon(BasicAddon):
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
         BasicAddon.__init__(self, 'config', cfg)
         self.rootdir = finaldir
+        
+def _EngineType(_id=None):
+    registry = {}
+    def wrap(f):
+        if _id is None:
+            fname_p = f.__name__.split('_')
+            _id = fname_p[1]
+        registry[_id] = f
+        # def wrapped_f(*args):
+        #    return f(*args)
+        # return wrapped_f
+        return f
+    wrap.all = registry
+    return wrap
+
+class EngineType(object):
+    all = {}
+    def __init__(self, _id=None):
+        self.id = _id
+    def __call__(self, f):
+        if self.id is None:
+            fname_p = f.__name__.split('_')
+            self.id = fname_p[1].lower()
+        log.info('Adding {0} as engine type {1}.'.format(f.__name__, self.id))
+        EngineType.all[self.id] = f
+        return f
+    
     
 class WatchdogEngine(object):
     Name = "Base"

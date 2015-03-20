@@ -1,5 +1,5 @@
 import os, socket, time
-from watchdog.engines.base import WatchdogEngine, ConfigAddon
+from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
 from watchdog.steamtools import srcupdatecheck, sourcequery
 from buildtools.os_utils import cmd, cmd_daemonize, Chdir, TimeExecution
 from buildtools.bt_logging import log
@@ -20,7 +20,7 @@ class SteamContent(object):
     Lookup = {}
     @classmethod
     def LoadDefs(cls, dir):
-        yml = Config(None,template_dir='/')
+        yml = Config(None, template_dir='/')
         yml.LoadFromFolder(dir)
         # pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():
@@ -82,6 +82,7 @@ class SteamContent(object):
             ]
             cmd(shell_cmd, echo=False, critical=True)
 
+@EngineType('srcds')
 class SourceEngine(WatchdogEngine):
     def __init__(self, cfg):
         global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME
@@ -149,9 +150,10 @@ class SourceEngine(WatchdogEngine):
     def updateFastDL(self):
             self.fastDLPaths = []
             gamepath = os.path.join(self.gamedir, self.game_content.game)
+            
+            '''
             old_hashes = {}
             new_hashes = {}
-            '''
             fastDLCache=os.path.join(self.cache_dir,'fastdl.vdf')
             if os.path.isfile(fastDLCache):
                 try:
@@ -227,7 +229,7 @@ class SourceEngine(WatchdogEngine):
                                 nRemoved += 1
                 with TimeExecution('Removed dead directories'):
                     del_empty_dirs(destdir)
-                #VDFFile({'checksums':new_hashes}).Save(fastDLCache)
+                # VDFFile({'checksums':new_hashes}).Save(fastDLCache)
                 log.info('Scanned: %d, Added: %d, Removed: %d', nScanned, nNew, nRemoved)
                 
     def updateAddons(self):
@@ -270,21 +272,21 @@ class SourceEngine(WatchdogEngine):
                 attempts += 1
     
     def start_process(self):
-        srcds_command = [os.path.join(self.gamedir, self.config.get('game.launcher', 'srcds_linux'))]
+        srcds_command = [os.path.join(self.gamedir, self.config.get('daemon.launcher', 'srcds_linux'))]
         
-        for key, value in self.config.get('srcds.srcds_args', {}).items():
+        for key, value in self.config.get('daemon.srcds_args', {}).items():
             if value is None: continue
             srcds_command.append('-' + key)
             if value != '':
                 srcds_command.append(str(value))
                 
-        for key, value in self.config.get('srcds.game_args', {}).items():
+        for key, value in self.config.get('daemon.game_args', {}).items():
             if value is None: continue
             srcds_command.append('+' + key)
             if value != '':
                 srcds_command.append(str(value))
                 
-        niceness = self.config.get('srcds.niceness', 0)
+        niceness = self.config.get('daemon.niceness', 0)
         if niceness != 0:
             srcds_command = ['nice', '-n', niceness] + srcds_command
         

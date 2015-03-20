@@ -3,7 +3,9 @@ from watchdog.engines.steam import SourceEngine
 from buildtools.bt_logging import log
 from watchdog.steamtools.vdf import VDFFile
 from buildtools.os_utils import TimeExecution
+from watchdog.engines.base import EngineType
 
+@EngineType('garrysmod')
 class GModEngine(SourceEngine):
     def __init__(self, cfg):
         super(GModEngine, self).__init__(cfg)
