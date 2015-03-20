@@ -1,0 +1,121 @@
+{#
+  This YAML configuration file supports Jinja2 templating.  This, obviously, is a comment.
+  
+  Anything in {% %} are a command to Jinja2. {{ ... }} render the specified variable. {{ blah|yaml_encode }} runs the variable blah through yaml_encode().
+  
+  You don't have to use Jinja2, but it makes things a little simpler.
+  
+  VARIABLES PASSED:
+    home_dir: Whatever ~ is.  Usually /home/username on Linux, C:\Users\username on Windows.
+    script_dir: Wherever Watchdog.py was run from.
+#}
+{% set game_dir = home_dir + '/garrysmod' %}{# Equivalent to ~/garrysmod. #}
+{% set mod_dir = game_dir + '/garrysmod' %}
+# All the Steam content to pull down.
+#  See games.d for names to use here.
+content:
+  garrysmod:
+    dir: {{ game_dir }}
+  # Comment these out if you don't need them.
+  tf2: {}
+  hl2: {}
+  hl2ep1: {}
+  hl2ep2: {}
+  hl2mp: {}
+  cstrike: {}
+auth:
+  steam:
+    # For games that require a login, you'll need to fill this out.
+    #  It'll only be used on games that absolutely require a login.
+    username: ''
+    password: ''
+    #steamguard: '' # SteamGuard token, if you have it enabled.
+  rcon:
+    # Set rcon_password to this when you join your server.
+    password: ''
+    
+# Required on Linux.  Do NOT change this or things will go sideways.
+env:
+  LD_LIBRARY_PATH: {{ game_dir }}:{{ game_dir }}/bin
+git:
+  # If you want to version-control your configuration, fill this out.
+  config:
+    type: git # Only git is available, at the moment.
+    remote: git@git.nexisonline.net:N3X15/gmod_config.git
+    branch: master # Branch you're using, assuming git or hg
+    subdirs: # Specify subdirectories to copy over. source: destination
+      # This one means {git repo}/cfg/ -> {game directory}[/mod directory]/cfg/
+      cfg: cfg
+      lua: lua
+      data: data
+      settings: settings
+  # Not used yet, but will allow you to have a seperate repo with patches to apply to the game/addons.
+  patches:
+    branch: master
+    remote: git@git.nexisonline.net:N3X15/gmod-patches.git
+    
+# Monitoring configuration
+monitor:
+  # Process name to look for
+  image: srcds_linux
+  # IP to ping
+  ip: 74.63.243.98
+  # Port to ping
+  port: 27015
+  # How long to wait before timing out a ping (in seconds)
+  timeout: 30.0
+  # Number of restart tries before watchdog gives up.
+  max-fails: 3
+  restart-wait: 30
+  threads: false
+  
+# Nudge Notification System configuration
+nudge:
+  # ID tag for this server
+  id: Test Server
+  # IP of the nudge receiver.
+  ip: localhost
+  # Port to send to
+  port: 45678
+  # Passcode for the nudge receiver.
+  key: my secret passcode
+  
+  
+paths:
+  # Where particular addons will end up going.
+  addons:
+    # Garry's Mod Lua addons (and GMAs)
+    lua: {{ mod_dir }}/addons
+    # MetaMod:Source addons
+    metamod: {{ mod_dir }}/addons
+    # SourceMod addons
+    sourcemod: {{ mod_dir }}/addons/sourcemod
+    
+  # Where configuration data will be checked out to
+  config: {{ mod_dir }}
+  # Where crash cores will be left
+  cores: {{ home_dir }}/steam/cores/
+  # Crash log location
+  crashlog: {{ home_dir }}/steam/crashlogs/
+  # Directory from which to run srcds
+  run: {{ game_dir }}
+  # Not used
+  stats: stats.json
+  # SteamCMD directory
+  steamcmd: {{ home_dir }}/steamcmd
+  
+# Game config
+srcds:
+  launcher: srcds_linux
+  srcds_args:
+    ip: 74.63.243.98
+    #authkey: Steam API key goes here 
+    autoupdate: ''
+    game: garrysmod
+  game_args:
+    gamemode: sandbox
+    host_workshop_collection: 407516070
+    #map: gm_flatgrass_glandbeta5
+    #map: gm_flatgrass
+    map: sb_new_worlds_2
+    maxplayers: 32

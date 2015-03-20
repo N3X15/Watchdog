@@ -25,7 +25,8 @@ import importlib
 import_packages={
 	'yaml':['yaml'],
 	'psutil':['psutil'],
-	'pyparsing':['pyparsing']
+	'pyparsing':['pyparsing'],
+	'Jinja2':['jinja2']
 }
 
 for pkg,modules in import_packages.items():
@@ -161,8 +162,11 @@ default_config = {
 }
 # @formatting:on
 
-config = Config('SMWatchdog.yml', default_config)
-config.LoadFromFolder('conf.d/')
+config = Config(os.path.join(os.getcwd(),'watchdog.yml'), default_config, template_dir='/', variables={
+	'script_dir':script_dir,
+	'home_dir':os.path.expanduser('~')
+})
+config.LoadFromFolder(os.path.join(os.getcwd(),'conf.d/'))
 config.set('paths.script',script_dir)
 
 LOGPATH = config.get('paths.crashlog', 'logs')
@@ -190,7 +194,7 @@ log = IndentLogger(log)
 # consoleHandler.setFormatter(logFormatter)
 # log.addHandler(consoleHandler)
 
-log.info('-' * 10)
+log.info('-' * 30)
 log.info('Watchdog: Started.')
 # send_nudge('Watchdog script restarted.')
 lastState = True

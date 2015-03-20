@@ -20,7 +20,7 @@ class SteamContent(object):
     Lookup = {}
     @classmethod
     def LoadDefs(cls, dir):
-        yml = Config(None)
+        yml = Config(None,template_dir='/')
         yml.LoadFromFolder(dir)
         # pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():

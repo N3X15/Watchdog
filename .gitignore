@@ -1,3 +1,4 @@
 /SMWatchdog.yml
 *.pyc
 *.bak
+/watchdog.yml
