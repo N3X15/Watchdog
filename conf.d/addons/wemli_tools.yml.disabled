@@ -1,0 +1,16 @@
+addons:
+  stool_precisionalign:
+    type: lua
+    repo:
+      remote: https://github.com/N3X15/stool_precisionalign.git
+      type: git
+  stool_axisbscentre:
+    type: lua
+    repo:
+      remote: https://github.com/N3X15/stool_axisbscentre.git
+      type: git
+  physgun_buildmode:
+    type: lua
+    repo:
+      remote: https://github.com/N3X15/physgun_buildmode.git
+      type: git
