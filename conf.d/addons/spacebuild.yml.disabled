@@ -3,4 +3,8 @@ addons:
     type: lua
     repo:
       type: git
-      remote: https://github.com/SnakeSVx/spacebuild.git
+      # Dead
+      #remote: https://github.com/SnakeSVx/spacebuild.git
+      # Updated by yours truly :^)
+      remote: https://github.com/N3X15/spacebuild.git
+      #branch: sb4

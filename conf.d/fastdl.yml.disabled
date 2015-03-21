@@ -19,4 +19,6 @@ fastdl:
     - wav
     - mp3
     - bsp
+    - ain
+    - tga
   
