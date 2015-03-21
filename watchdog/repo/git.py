@@ -8,6 +8,7 @@ from watchdog import utils
 from watchdog.repo.base import RepoDir, RepoType
 from buildtools.wrapper.git import GitRepository
 from buildtools import os_utils, log
+import traceback
 
 @RepoType('git')
 class GitRepo(RepoDir):
@@ -34,12 +35,26 @@ class GitRepo(RepoDir):
             self.log.warn('Addon {0} has not been cloned yet.', self.addon.id)
     
     def isUp2Date(self):
-        return not self.repo.CheckForUpdates(branch=self.branch)
+        try:
+            return not self.repo.CheckForUpdates(branch=self.branch)
+        except Exception as e:
+            log.error(traceback.format_exc())
+            return False
     
     def update(self):
         with log.info('Updating addon %s from a git repository...', self.addon.id):
             cleanup = self.config.get('cleanup', False)
-            self.repo.CheckForUpdates(branch=self.branch)
+            try:
+                self.repo.CheckForUpdates(branch=self.branch)
+            except Exception as e:
+                log.error('An issue occurred while checking the remote repository of %s for updates.',self.addon.id)
+                log.error(traceback.format_exc())
+                log.error('We will now attempt to re-clone %s.',self.addon.id)
+                self.remove()
+                if os.path.isdir(self.destination):
+                    log.critical('UNABLE TO REMOVE %s!',self.destination)
+                    sys.exit(-1)
+                
             old_commit = self.repo.current_commit
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
@@ -56,7 +71,7 @@ class GitRepo(RepoDir):
         return False 
 
     def remove(self):
-        AddonDir.remove(self)
+        RepoDir.remove(self)
         if 'subdirs' in self.config:
             for src, dest in self.config['subdirs'].items():
                 dest = os.path.join(self.rootdir, dest)

@@ -73,5 +73,6 @@ class RepoDir(Repo):
         if os.path.isdir(self.destination):
             with os_utils.TimeExecution('Removed ' + self.destination):
                 os_utils.safe_rmtree(self.destination)
+                os.rmdir(self.destination)
         else:
             log.warn('Directory removal already done...?')

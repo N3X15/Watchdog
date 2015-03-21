@@ -139,8 +139,7 @@ class WatchdogEngine(object):
             for id, addonCfg in loadedAddons.items():
                 if id not in newAddons:
                     with log.info('Removing dead addon %r...', id):
-                        dest = self.config['paths']['addons'][addonCfg['type']]
-                        addon = CreateAddon(id, addonCfg, dest)
+                        addon = CreateAddon(id, addonCfg)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:
