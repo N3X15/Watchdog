@@ -134,10 +134,7 @@ if __name__=='__main__':
 				continue
 		if not engine.pingServer():
 			# try to start the server again
-			if engine.checkForUpdates():
-				# send_nudge('Updates detected, restarting.')
-				log.warn('Updates detected')
-				engine.applyUpdates(restart=False)
+			engine.doUpdateCheck()
 			failChain += 1
 			if lastState == False:
 				if failChain > MAX_FAILURES:
@@ -161,10 +158,7 @@ if __name__=='__main__':
 				log.info('Server is confirmed to be up and running.')
 				# send_nudge('Server is online and responding to queries.')
 			else:
-				if engine.checkForUpdates():
-					# send_nudge('Updates detected, restarting.')
-					log.warn('Updates detected')
-					engine.applyUpdates(restart=True)
+				engine.doUpdateCheck()
 			lastState = True
 			failChain = 0
 		firstRun = False

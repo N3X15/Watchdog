@@ -111,7 +111,9 @@ class SourceEngine(WatchdogEngine):
             
         self.configrepo = ConfigAddon(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
         
-    def updateAlert(self):
+        self.numPlayers = 0
+        
+    def updateAlert(self, typeID):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
         wait = self.config.get('monitor.restart-wait', 30)
@@ -122,13 +124,32 @@ class SourceEngine(WatchdogEngine):
                 log.warn('Process is not running, skipping rcon warning.')
                 return
             if not self.pingServer(noisy=True):
-                log.warn('PING failed, skipping rcon warning.') 
+                log.warn('PING failed, skipping RCON warning.') 
+                return
+            if self.numPlayers == 0:
+                log.warn('0 players online, skipping RCON warning.')
                 return
             with RCON((ip, port), passwd) as rcon:
                 if wait > 0:
-                    rcon('say [Watchdog] Update detected, restarting in {time} seconds.'.format(time=wait))
+                    rcon('say [Watchdog] {type} update detected, restarting in {time} seconds.'.format(type=typeID, time=wait))
                     time.sleep(wait)
-                rcon('say [Watchdog] Update detected, restarting now.')
+                rcon('say [Watchdog] Restarting now to update {}.'.format(typeID))
+                
+    def queueRestart(self, typeID):
+        WatchdogEngine.queueRestart(self)
+        
+        with log.info('Sending restart queue warning via RCON to %s:%d...', ip, port):
+            if self.process is None or not self.process.is_running():
+                log.warn('Process is not running, skipping rcon warning.')
+                return
+            if not self.pingServer(noisy=True):
+                log.warn('PING failed, skipping RCON warning.') 
+                return
+            if self.numPlayers == 0:
+                log.warn('0 players online, skipping RCON warning.')
+                return
+            with RCON((ip, port), passwd) as rcon:
+                rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
                 
     def compressFile(self, src, dest):
         destdir = os.path.dirname(dest)
@@ -250,8 +271,8 @@ class SourceEngine(WatchdogEngine):
             with log:
                 server = ServerQuerier((ip, port), timeout=timeout)
                 # with TimeExecution('Ping'):
-                numplayers = server.get_info()['player_count']
-                if noisy: log.info('%d players connected.', numplayers)
+                self.numPlayers = int(server.get_info()['player_count'])
+                if noisy: log.info('%d players connected.', self.numPlayers)
         except Exception as e:
             log.error(e)
             return False

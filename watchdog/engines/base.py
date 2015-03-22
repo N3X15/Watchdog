@@ -16,6 +16,7 @@ class ConfigAddon(BasicAddon):
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
         BasicAddon.__init__(self, 'config', cfg)
         self.rootdir = finaldir
+        self.restartQueued = False
         
 def _EngineType(_id=None):
     registry = {}
@@ -43,6 +44,9 @@ class EngineType(object):
         EngineType.all[self.id] = f
         return f
     
+class RestartPriority:
+    ROUND_END = 0
+    NOW = 1
     
 class WatchdogEngine(object):
     Name = "Base"
@@ -98,6 +102,7 @@ class WatchdogEngine(object):
                 time.sleep(1)
                 self.find_process()
         self.process = None
+        self.restartQueued = False
             
     def start_process(self):
         return
@@ -106,15 +111,47 @@ class WatchdogEngine(object):
         '''True when content has changed.'''
         return False
     
+    def getRestartPriority(self, type, default='DELAY'):
+        typeID = self.config.get('monitor.restart-type.' + type, 'delay').upper()
+        if typeID in ('DELAY', 'DELAYED', 'ROUND', 'ROUND END', 'ROUND_END'): 
+            return RestartPriority.ROUND_END
+        elif typeID in ('IMMEDIATE', 'NOW'): 
+            return RestartPriority.NOW
+        
+    def queueRestart(self):
+        self.restartQueued = True
+        
+    def doUpdateCheck(self):
+        restartNeeded, component=self.checkForUpdates()
+        componentName=''
+        if restartNeeded:
+            p = self.getRestartPriority(component, defaultDelayType)
+            if p == RestartPriority.NOW: 
+                restartNeeded = True
+                componentName = component
+                if componentName == 'content':
+                    componentName='game content'
+            elif p == RestartPriority.ROUND_END and not self.restartQueued:
+                self.queueRestart(component)
+                restartNeeded=False
+        
+        if restartNeeded:
+            # send_nudge('Updates detected, restarting.')
+            log.warn('Updates detected')
+            engine.updateAlert(componentName)
+            engine.applyUpdates(restart=False)
+    
     def applyUpdates(self, restart=True):
         if restart and self.process and self.process.is_running():
             self.updateAlert()
         if restart: self.end_process()
         
         restartNeeded = False
-        if self.updateContent(): restartNeeded = True
-        if self.updateAddons(): restartNeeded = True
-        if self.updateConfig(): restartNeeded = True
+            
+        if self.updateAddons(): restartNeeded=True
+        if self.updateContent(): restartNeeded=True
+        if self.updateConfig(): restartNeeded=True
+        
         if restartNeeded and not restart:
             self.end_process()
             
@@ -152,18 +189,16 @@ class WatchdogEngine(object):
                 log.warn('Addon %s is out of date!', id)
                 return True
         
-        if not self.configrepo.isUp2Date():
-            log.warn('Configuration is out of date!')
-            return True
-        
         return False
     
     def checkForUpdates(self):
         if self.checkForContentUpdates():
-            return True
+            return True, 'content'
         if self._checkAddonsForUpdates():
-            return True
-        return False
+            return True, 'addons'
+        if not self.configrepo.isUp2Date():
+            return True, 'config'
+        return False, None
     
     def updateConfig(self):
         if self.configrepo is not None:
@@ -172,7 +207,7 @@ class WatchdogEngine(object):
                     return True
         return False
             
-    def updateAlert(self):
+    def updateAlert(self, typeID):
         pass
     
     def pingServer(self):
