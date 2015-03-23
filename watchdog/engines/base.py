@@ -73,6 +73,7 @@ class WatchdogEngine(object):
                 self.addons[id] = addon
                 
         self.configrepo = None
+        self.restartQueued = False
                 
     def find_process(self):
         if self.process is None or not self.process.is_running():
@@ -125,7 +126,7 @@ class WatchdogEngine(object):
         restartNeeded, component=self.checkForUpdates()
         componentName=''
         if restartNeeded:
-            p = self.getRestartPriority(component, defaultDelayType)
+            p = self.getRestartPriority(component, 'now')
             if p == RestartPriority.NOW: 
                 restartNeeded = True
                 componentName = component
@@ -138,8 +139,8 @@ class WatchdogEngine(object):
         if restartNeeded:
             # send_nudge('Updates detected, restarting.')
             log.warn('Updates detected')
-            engine.updateAlert(componentName)
-            engine.applyUpdates(restart=False)
+            self.updateAlert(componentName)
+            self.applyUpdates(restart=False)
     
     def applyUpdates(self, restart=True):
         if restart and self.process and self.process.is_running():

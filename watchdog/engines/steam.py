@@ -138,6 +138,9 @@ class SourceEngine(WatchdogEngine):
     def queueRestart(self, typeID):
         WatchdogEngine.queueRestart(self)
         
+        ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
+        passwd = self.config.get('auth.rcon.password', None)
         with log.info('Sending restart queue warning via RCON to %s:%d...', ip, port):
             if self.process is None or not self.process.is_running():
                 log.warn('Process is not running, skipping rcon warning.')
