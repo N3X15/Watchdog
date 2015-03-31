@@ -7,4 +7,4 @@ addons:
       #remote: https://github.com/SnakeSVx/spacebuild.git
       # Updated by yours truly :^)
       remote: https://github.com/N3X15/spacebuild.git
-      #branch: sb4
+      branch: sb3-dev

@@ -1,21 +1,21 @@
 '''
-Created on Mar 13, 2015
+Created on Mar 31, 2015
 
 @author: Rob
 '''
 import os
 from watchdog import utils
 from watchdog.repo.base import RepoDir, RepoType
-from buildtools.repo.git import GitRepository
+from buildtools.repo.hg import HgRepository
 from buildtools import os_utils, log
 import traceback
 
-@RepoType('git')
-class GitRepo(RepoDir):
-    '''Addon stored in a git repository.'''
+@RepoType('hg')
+class HgRepo(RepoDir):
+    '''Addon stored in an hg repository.'''
 
     def __init__(self, addon, cfg, dest):
-        super(GitRepo, self).__init__(addon, cfg, dest)
+        super(HgRepo, self).__init__(addon, cfg, dest)
         self.remote = self.config['remote']
         self.branch = self.config.get('branch', 'master')
         if 'subdirs' in self.config:
@@ -29,7 +29,7 @@ class GitRepo(RepoDir):
     def preload(self):
         if not os.path.isdir(self.destination):
             self.repo.GetRepoState()
-            self.log.info('Addon {0} git repository on branch {1}, commit {2}.'.format(self.addon.id, self.repo.current_branch, self.repo.current_commit))
+            self.log.info('Addon {0} hg repository on branch {1}, revision {2}.'.format(self.addon.id, self.repo.current_branch, self.repo.current_rev))
         else:
             self.log.warn('Addon {0} has not been cloned yet.', self.addon.id)
     
@@ -41,7 +41,7 @@ class GitRepo(RepoDir):
             return False
     
     def update(self):
-        with log.info('Updating addon %s from a git repository...', self.addon.id):
+        with log.info('Updating addon %s from an hg repository...', self.addon.id):
             cleanup = self.config.get('cleanup', False)
             try:
                 self.repo.CheckForUpdates(branch=self.branch)
@@ -54,12 +54,12 @@ class GitRepo(RepoDir):
                     log.critical('UNABLE TO REMOVE %s!',self.destination)
                     sys.exit(-1)
                 
-            old_commit = self.repo.current_commit
+            old_rev = self.repo.current_rev
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
-            if old_commit != self.repo.current_commit:
+            if old_rev != self.repo.current_rev:
                 if 'subdirs' in self.config:
-                    with log.info('New commit detected (%s vs. %s), updating filesystem...',old_commit,self.repo.current_commit):
+                    with log.info('New revision detected (%s vs. %s), updating filesystem...',old_rev,self.repo.current_rev):
                         for src, dest in self.config['subdirs'].items():
                             src = os.path.join(self.destination, src)
                             dest = os.path.join(self.rootdir, dest)

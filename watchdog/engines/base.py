@@ -4,7 +4,6 @@ from buildtools.bt_logging import log
 from watchdog.addon import CreateAddon, BasicAddon
 from buildtools import os_utils
 import logging
-from buildtools.wrapper.git import GitRepository
 from watchdog.steamtools.vdf import VDFFile
 import yaml
 import traceback
@@ -123,24 +122,24 @@ class WatchdogEngine(object):
         self.restartQueued = True
         
     def doUpdateCheck(self):
-        restartNeeded, component=self.checkForUpdates()
-        componentName=''
+        restartNeeded, component = self.checkForUpdates()
+        componentName = ''
         if restartNeeded:
             p = self.getRestartPriority(component, 'now')
             if p == RestartPriority.NOW: 
                 restartNeeded = True
                 componentName = component
                 if componentName == 'content':
-                    componentName='game content'
+                    componentName = 'game content'
             elif p == RestartPriority.ROUND_END and not self.restartQueued:
                 self.queueRestart(component)
-                restartNeeded=False
+                restartNeeded = False
         
         if restartNeeded:
             # send_nudge('Updates detected, restarting.')
             log.warn('Updates detected')
             self.updateAlert(componentName)
-            self.applyUpdates(restart=False)
+            self.applyUpdates(restart=True)
     
     def applyUpdates(self, restart=True):
         if restart and self.process and self.process.is_running():
@@ -149,9 +148,9 @@ class WatchdogEngine(object):
         
         restartNeeded = False
             
-        if self.updateAddons(): restartNeeded=True
-        if self.updateContent(): restartNeeded=True
-        if self.updateConfig(): restartNeeded=True
+        if self.updateAddons(): restartNeeded = True
+        if self.updateContent(): restartNeeded = True
+        if self.updateConfig(): restartNeeded = True
         
         if restartNeeded and not restart:
             self.end_process()
@@ -208,7 +207,7 @@ class WatchdogEngine(object):
                     return True
         return False
             
-    def updateAlert(self, typeID):
+    def updateAlert(self, typeID=None):
         pass
     
     def pingServer(self):

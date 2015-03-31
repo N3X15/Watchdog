@@ -1,6 +1,6 @@
 import os, socket, time
 from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
-from watchdog.steamtools import srcupdatecheck, sourcequery
+from watchdog.steamtools import srcupdatecheck
 from buildtools.os_utils import cmd, cmd_daemonize, Chdir, TimeExecution
 from buildtools.bt_logging import log
 from buildtools import os_utils, ENV, Config
@@ -113,7 +113,7 @@ class SourceEngine(WatchdogEngine):
         
         self.numPlayers = 0
         
-    def updateAlert(self, typeID):
+    def updateAlert(self, typeID=''):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
         wait = self.config.get('monitor.restart-wait', 30)

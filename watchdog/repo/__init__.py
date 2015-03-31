@@ -1,6 +1,7 @@
 import os
 from .base import RepoType
 from .git import GitRepo
+from .hg import HgRepo
 
 def CreateRepo(addon, cfg, root):
     repoclass = cfg.get('type', 'basic')

@@ -50,7 +50,6 @@ from buildtools import *
 from buildtools import os_utils
 from buildtools.wrapper import Git
 from buildtools.bt_logging import IndentLogger
-from buildtools.wrapper.git import GitRepository
 	
 if __name__=='__main__':
 	utils.script_dir=script_dir
