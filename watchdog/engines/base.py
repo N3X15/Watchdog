@@ -50,6 +50,7 @@ class RestartPriority:
 class WatchdogEngine(object):
     Name = "Base"
     Version = 0000
+    RestartOnChange=False
     
     def __init__(self, cfg):
         self.config = cfg
@@ -123,17 +124,22 @@ class WatchdogEngine(object):
         
     def doUpdateCheck(self):
         restartNeeded, component = self.checkForUpdates()
-        componentName = ''
         if restartNeeded:
-            p = self.getRestartPriority(component, 'now')
-            if p == RestartPriority.NOW: 
-                restartNeeded = True
-                componentName = component
-                if componentName == 'content':
-                    componentName = 'game content'
-            elif p == RestartPriority.ROUND_END and not self.restartQueued:
-                self.queueRestart(component)
-                restartNeeded = False
+            self.restartIfNeeded(component)
+            
+    def restartIfNeeded(self, component):
+        restartNeeded=False
+        componentName = ''
+
+        p = self.getRestartPriority(component, 'now')
+        if p == RestartPriority.NOW: 
+            restartNeeded = True
+            componentName = component
+            if componentName == 'content':
+                componentName = 'game content'
+        elif p == RestartPriority.ROUND_END and not self.restartQueued:
+            self.queueRestart(component)
+            restartNeeded = False
         
         if restartNeeded:
             # send_nudge('Updates detected, restarting.')
@@ -142,22 +148,28 @@ class WatchdogEngine(object):
             self.applyUpdates(restart=True)
     
     def applyUpdates(self, restart=True):
-        if restart and self.process and self.process.is_running():
-            self.updateAlert()
-        if restart: self.end_process()
-        
-        restartNeeded = False
-            
-        if self.updateAddons(): restartNeeded = True
-        if self.updateContent(): restartNeeded = True
-        if self.updateConfig(): restartNeeded = True
-        
-        if restartNeeded and not restart:
+        if restart: 
             self.end_process()
+        
+        restartComponent = None
             
-        if restart: self.start_process()
+        if self.updateAddons(): 
+            restartComponent = 'addon'
+        if self.updateContent(): 
+            restartComponent = 'content'
+        if self.updateConfig(): 
+            restartComponent = 'config'
+        
+        if restartComponent is not None and not restart:
+            #self.end_process()
+            #restart=True
+            self.restartIfNeeded(restartComponent)
+            
+        if restart: 
+            self.start_process()
         
     def updateAddons(self): 
+        '''Returns True when an addon has changed.'''
         changed = False
         with log.info('Updating addons...'):
             loadedAddons = {}
@@ -172,6 +184,7 @@ class WatchdogEngine(object):
                     changed = True
                 if id not in loadedAddons:
                     log.info('%s is new! Triggering restart.', id)
+                    changed = True
                 newAddons[id] = addon.config
             for id, addonCfg in loadedAddons.items():
                 if id not in newAddons:

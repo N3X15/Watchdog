@@ -9,7 +9,6 @@ import json
 import logging
 import logging.handlers
 import os
-import psutil
 import re
 import shutil
 import socket
@@ -22,25 +21,25 @@ import platform
 import importlib
 
 # pip package => module list
-import_packages={
+import_packages = {
 	'yaml':['yaml'],
 	'psutil':['psutil'],
 	'pyparsing':['pyparsing'],
 	'Jinja2':['jinja2']
 }
 
-for pkg,modules in import_packages.items():
+for pkg, modules in import_packages.items():
 	try:
 		for module in modules:
 			importlib.import_module(module)
 	except:
-		print('Failed to import {module}, which means {pkg} is not installed.  Please run "pip install {pkg}".'.format(module=module,pkg=pkg))
+		print('Failed to import {module}, which means {pkg} is not installed.  Please run "pip install {pkg}".'.format(module=module, pkg=pkg))
 		sys.exit(-1)
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
 sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
-#print(repr(sys.path))
+# print(repr(sys.path))
 
 from watchdog import utils 
 from watchdog.engines import SourceEngine, GModEngine, GetEngine
@@ -51,10 +50,10 @@ from buildtools import os_utils
 from buildtools.wrapper import Git
 from buildtools.bt_logging import IndentLogger
 	
-if __name__=='__main__':
-	utils.script_dir=script_dir
+if __name__ == '__main__':
+	utils.script_dir = script_dir
 	
-	cfgPath = os.path.join(os.getcwd(),'watchdog.yml')
+	cfgPath = os.path.join(os.getcwd(), 'watchdog.yml')
 	if not os.path.isfile(cfgPath):
 		print('ERROR: %s does not exist.  Please copy the desired configuration template from conf.templates, rename it to watchdog.yml, and edit it to taste.  Watchdog cannot start until this is done.', cfgPath)
 		sys.exit(-1)
@@ -63,8 +62,8 @@ if __name__=='__main__':
 		'script_dir':script_dir,
 		'home_dir'  :os.path.expanduser('~')
 	})
-	config.LoadFromFolder(os.path.join(os.getcwd(),'conf.d/'))
-	config.set('paths.script',script_dir)
+	config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'))
+	config.set('paths.script', script_dir)
 	
 	#########################
 	# Set up logging.
@@ -72,7 +71,7 @@ if __name__=='__main__':
 	logFormatter = logging.Formatter(fmt='%(asctime)s [%(levelname)-8s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')  # , level=logging.INFO, filename='crashlog.log', filemode='a+')
 	log = logging.getLogger()
 	
-	logLevel = config.get('logging.level','INFO')
+	logLevel = config.get('logging.level', 'INFO')
 	if logLevel.upper() == 'INFO':
 		log.setLevel(logging.INFO)
 	elif logLevel.upper() == 'WARN' or logLevel.upper() == 'WARNING':
@@ -82,8 +81,8 @@ if __name__=='__main__':
 	elif logLevel.upper() == 'DEBUG':
 		log.setLevel(logging.DEBUG)
 	
-	LOGPATH = config.get('logging.log-path', os.path.join(os.getcwd(),'logs','watchdog.log'))
-	LOGMAXSIZE = config.get('logging.max-size', 1024*1024*50)  # 50MB
+	LOGPATH = config.get('logging.log-path', os.path.join(os.getcwd(), 'logs', 'watchdog.log'))
+	LOGMAXSIZE = config.get('logging.max-size', 1024 * 1024 * 50)  # 50MB
 	LOGNBACKUPS = config.get('logging.backup-count', 0)
 	
 	os_utils.ensureDirExists(os.path.dirname(LOGPATH), noisy=True)
@@ -113,9 +112,9 @@ if __name__=='__main__':
 	firstRun = True
 	waiting_for_next_commit = False
 	
-	SteamContent.LoadDefs(os.path.join(script_dir,'games.d/'))
+	SteamContent.LoadDefs(os.path.join(script_dir, 'games.d/'))
 	
-	#engine = GModEngine(config)
+	# engine = GModEngine(config)
 	engine = GetEngine(config)
 	
 	MAX_FAILURES = config.get('monitor.max-fails')
@@ -131,6 +130,7 @@ if __name__=='__main__':
 			if waiting_for_next_commit:
 				time.sleep(50)
 				continue
+			
 		if not engine.pingServer():
 			# try to start the server again
 			engine.doUpdateCheck()

@@ -68,6 +68,10 @@ class SourceMod(SourceEngineAddon):
             yaml.dump(cache,f, default_flow_style=False)
         
     def isUp2Date(self):
+        latestBuild, latestURL = self._updateCheck(stable)
+        #log.info('Latest SM version: build %d',latestBuild,latestURL)
+        #log.info('Current SM version: build %d',self.current_version)
+        return self.current_version == latestBuild
         
         
     def _updateCheck(self, stable=True):
@@ -111,7 +115,7 @@ class SourceMod(SourceEngineAddon):
 
     def Update(self, stable=True):
         with log.info('Searching for SM updates (%s):',self.versiongroup):
-            latestBuild, latestURL = self.FindLatest(stable)
+            latestBuild, latestURL = self._updateCheck(stable)
             log.info('Latest SM version: build %d',latestBuild,latestURL)
             log.info('Current SM version: build %d',self.current_version)
             if self.current_version != latestBuild:
