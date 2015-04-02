@@ -9,7 +9,7 @@ from watchdog.addon.source.base import SourceEngineAddon
 
 from buildtools import http, os_utils
 from buildtools.bt_logging import log
-from buildtools.os_utils import Chdir
+from buildtools.os_utils import Chdir, cmd
 from watchdog.addon.source.alliedmoddersbase import AlliedModdersBase, AMOperatingSystem
 from watchdog.addon.base import AddonType
 
@@ -23,8 +23,8 @@ class SourceMod(AlliedModdersBase):
     DROP_FORMAT = 'http://www.sourcemod.net/smdrop/{VERSION}/'
     DROP_FILE_EXPRESSION = re.compile('sourcemod-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|mac)\.[a-z\.]+')
 
-    def __init__(self, id, cfg, dest):
-        super(SourceMod, self).__init__(id, cfg)
+    def __init__(self, engine, id, cfg):
+        super(SourceMod, self).__init__(engine, id, cfg)
 
         self.drop_ext = '.zip'
         if self.os == AMOperatingSystem.LINUX:
@@ -38,7 +38,7 @@ class SourceMod(AlliedModdersBase):
             os.remove('sourcemod' + self.drop_ext)
             
             rsync_flags = []
-            if os.path.isdir(os.path.join(self.destdir, 'addons', 'sourcemod', 'configs')):
+            if os.path.isdir(os.path.join(self.destination, 'addons', 'sourcemod', 'configs')):
                 rsync_flags += ['--exclude=sourcemod/configs']
-            cmd(['rsync', '-zrav'] + rsync_flags + ['addons/', self.destdir], echo=True, critical=True)
+            cmd(['rsync', '-zrav'] + rsync_flags + ['addons/', self.destination], echo=True, critical=True)
         cmd(['rm', '-rf', dirname])

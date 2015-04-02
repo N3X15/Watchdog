@@ -110,7 +110,8 @@ class SourceEngine(WatchdogEngine):
                 self.game_content = app
                 log.info('Found target game: %s', app.appName)
             
-        self.configrepo = ConfigAddon(cfg.get('git.config', {}), os.path.join(self.gamedir, self.game_content.game))
+        if 'config' in cfg['git'] and 'repo' in cfg['git']['config']: 
+            self.configrepo = ConfigAddon(self, cfg.get('git.config'), os.path.join(self.gamedir, self.game_content.game))
         
         self.numPlayers = 0
         
@@ -156,6 +157,7 @@ class SourceEngine(WatchdogEngine):
                 rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
                 
     def compressFile(self, src, dest):
+        #log.info('bz2 %s %s',src,dest)
         destdir = os.path.dirname(dest)
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
@@ -190,41 +192,51 @@ class SourceEngine(WatchdogEngine):
         '''
                 
         destdir = self.config.get('fastdl.destination', '')
-        exclude_dirs = self.config.get('fastdl.exclude-dirs', ['.git', '.svn'])
+        exclude_dirs = self.config.get('fastdl.exclude-dirs', ['.git', '.svn', '.hg'])
         include_exts = self.config.get('fastdl.include-exts', ["mdl", "vmt", "vtf", "wav", 'mp3', 'bsp']);
-        addon_dirs = ['addons']  # , 'gamemodes']
-        nScanned = 0
-        nNew = 0
-        nRemoved = 0
+        forced_files = self.config.get('fastdl.files', []);
+        addon_dirs = self.config.get('fastdl.addon-dirs',['addons'])
+        scan_dirs = self.config.get('fastdl.scan-dirs',['addons','maps'])
+        self.nScanned = 0
+        self.nNew = 0
+        self.nRemoved = 0
+        
+        def processFile(fullpath):
+            #global nScanned,nNew,nRemoved
+            self.nScanned += 1
+            _, ext = os.path.splitext(fullpath)
+            ext = ext.strip('.')
+            if ext not in include_exts:
+                return
+            relpath = os.path.relpath(fullpath, gamepath)
+            relpathparts = relpath.split(os.sep)
+            if relpathparts[0] in addon_dirs:
+                relpathparts = relpathparts[2:]
+            #else:
+            #    return
+            ignore = False
+            for relpathpart in relpathparts:
+                if relpathpart in exclude_dirs:
+                    ignore = True
+            if ignore: return
+            relpath = '/'.join(relpathparts)
+            self.fastDLPaths.append(relpath)
+            # md5 = md5sum(fullpath)
+            # new_hashes[relpath] = md5
+            # if fullpath in old_hashes and old_hashes[relpath] == md5:
+            destfile = os.path.join(destdir, os.sep.join(relpathparts))
+            if self.compressFile(fullpath, destfile):
+                self.nNew += 1
+                
         with log.info('Updating FastDL for {}... (This may take a while)'.format(gamepath)):
             with TimeExecution('Updated files'):
-                for root, dirs, files in os.walk(gamepath):
-                    for file in files:
-                        nScanned += 1
-                        fullpath = os.path.join(root, file)
-                        _, ext = os.path.splitext(fullpath)
-                        ext = ext.strip('.')
-                        if ext not in include_exts:
-                            continue
-                        relpath = os.path.relpath(fullpath, gamepath)
-                        relpathparts = relpath.split(os.sep)
-                        if relpathparts[0] in addon_dirs:
-                            relpathparts = relpathparts[2:]
-                        else:
-                            continue
-                        ignore = False
-                        for relpathpart in relpathparts:
-                            if relpathpart in exclude_dirs:
-                                ignore = True
-                        if ignore: continue
-                        relpath = '/'.join(relpathparts)
-                        self.fastDLPaths.append(relpath)
-                        # md5 = md5sum(fullpath)
-                        # new_hashes[relpath] = md5
-                        # if fullpath in old_hashes and old_hashes[relpath] == md5:
-                        destfile = os.path.join(destdir, os.sep.join(relpathparts))
-                        if self.compressFile(fullpath, destfile):
-                            nNew += 1
+                for scan_dir in scan_dirs:
+                    log.info('Scanning %s...',scan_dir)
+                    for root, dirs, files in os.walk(os.path.join(gamepath,scan_dir)):
+                        for file in files:
+                            processFile(os.path.join(root, file))
+                for file in forced_files:
+                    processFile(file)
             # sys.exit(1)
             with TimeExecution('Removed dead files'):
                 for root, dirs, files in os.walk(destdir):
@@ -251,11 +263,11 @@ class SourceEngine(WatchdogEngine):
                         if remove: 
                             log.info('Removing %s...', relpath)
                             os.remove(realpath)
-                            nRemoved += 1
+                            self.nRemoved += 1
             with TimeExecution('Removed dead directories'):
                 del_empty_dirs(destdir)
             # VDFFile({'checksums':new_hashes}).Save(fastDLCache)
-            log.info('Scanned: %d, Added: %d, Removed: %d', nScanned, nNew, nRemoved)
+            log.info('Scanned: %d, Added: %d, Removed: %d', self.nScanned, self.nNew, self.nRemoved)
                 
     def updateAddons(self):
         updated = WatchdogEngine.updateAddons(self)

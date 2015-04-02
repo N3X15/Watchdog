@@ -3,17 +3,22 @@ Created on Mar 18, 2015
 
 @author: Rob
 '''
-from watchdog.addon.base import Addon
+import os
+from watchdog.addon.base import Addon, BasicAddon
+from watchdog.repo import CreateRepo
 
 class SourceEngineAddon(Addon):
     '''
     Source Engine Addon (MM:S etc)
     '''
-    def __init__(self, id, cfg, dest):
-        super(SourceEngineAddon, self).__init__(id, cfg, dest)
+    def __init__(self, engine, id, cfg):
+        super(SourceEngineAddon, self).__init__(engine, id, cfg)
         if 'dir' not in cfg: 
             root=BasicAddon.ClassDestinations['source-addon']
             self.destination = os.path.join(root,id)
         else:
             self.destination=cfg['dir']
-        self.repo = CreateRepo(self, cfg['repo'], self.destination)
+        if 'repo' in cfg:
+            self.repo = CreateRepo(self, cfg.get('repo',{}), self.destination)
+        else:
+            self.repo = None

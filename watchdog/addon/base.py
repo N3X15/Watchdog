@@ -36,7 +36,8 @@ class AddonType(object):
         return f
 
 class Addon(object):
-    def __init__(self, id, cfg):
+    def __init__(self, engine, id, cfg):
+        self.engine = engine
         self.id = id
         self.config = cfg
         self.repo_config = self.config.get('repo', {})
@@ -66,18 +67,20 @@ class BasicAddon(Addon):
     Used if `addon: basic` is specified. Also used by default.
     '''
     ClassDestinations = {}
-    def __init__(self, id, cfg):
-        super(BasicAddon, self).__init__(id, cfg)
+    def __init__(self, engine, id, cfg):
+        super(BasicAddon, self).__init__(engine, id, cfg)
         if 'dir' not in cfg: 
             self.clsType = cfg['type']
             root=BasicAddon.ClassDestinations[self.clsType]
             self.destination = os.path.join(root,id)
         else:
             self.destination=cfg['dir']
+        if 'repo' not in cfg:
+            log.critical('Addon %r is missing its repository configuration!')
         self.repo = CreateRepo(self, cfg['repo'], self.destination)
         
     def validate(self):
-        return self.repo.validate()
+        return 'repo' in cfg and self.repo.validate()
         
     def preload(self):
         return self.repo.preload()

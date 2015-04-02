@@ -10,10 +10,10 @@ import traceback
 from watchdog import utils
 
 class ConfigAddon(BasicAddon):
-    def __init__(self, cfg, finaldir):
+    def __init__(self, engine, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
-        BasicAddon.__init__(self, 'config', cfg)
+        BasicAddon.__init__(self, engine, 'config', cfg)
         self.rootdir = finaldir
         self.restartQueued = False
         
@@ -60,7 +60,7 @@ class WatchdogEngine(object):
         
         self.working_dir = os.getcwd()
         self.cache_dir = os.path.join(self.working_dir, 'cache')
-        os_utils.ensureDirExists(self.cache_dir, mode=0700)
+        os_utils.ensureDirExists(self.cache_dir)
         
         BasicAddon.ClassDestinations = {}
         for classID, classDest in self.config['paths']['addons'].items():
@@ -68,9 +68,11 @@ class WatchdogEngine(object):
         
         self.addons = {}
         for id, acfg in self.config['addons'].items():
-            addon = CreateAddon(id, acfg)
-            if addon.validate():
+            addon = CreateAddon(self, id, acfg)
+            if addon and addon.validate():
                 self.addons[id] = addon
+            else:
+                log.error('Addon %s failed to load.',id)
                 
         self.configrepo = None
         self.restartQueued = False
@@ -209,7 +211,7 @@ class WatchdogEngine(object):
             return True, 'content'
         if self._checkAddonsForUpdates():
             return True, 'addons'
-        if not self.configrepo.isUp2Date():
+        if self.configrepo and not self.configrepo.isUp2Date():
             return True, 'config'
         return False, None
     
