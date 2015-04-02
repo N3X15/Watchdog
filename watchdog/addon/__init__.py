@@ -1,5 +1,7 @@
 import os
 from .base import AddonType, BasicAddon
+from .source.metamodsource import MetaModSource
+from .source.sourcemod import SourceMod
 
 def CreateAddon(id, cfg):
     #print('{}: {}'.format(id,repr(cfg)))
