@@ -58,11 +58,12 @@ if __name__ == '__main__':
 		print('ERROR: %s does not exist.  Please copy the desired configuration template from conf.templates, rename it to watchdog.yml, and edit it to taste.  Watchdog cannot start until this is done.', cfgPath)
 		sys.exit(-1)
 		
-	config = Config(cfgPath, {}, template_dir='/', variables={
-		'script_dir':script_dir,
-		'home_dir'  :os.path.expanduser('~')
-	})
-	config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'))
+	jinja_vars = {
+		'script_dir' : script_dir,
+		'home_dir'  : os.path.expanduser('~')
+	}
+	config = Config(cfgPath, {}, template_dir='/', variables=jinja_vars)
+	config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'), variables=jinja_vars)
 	config.set('paths.script', script_dir)
 	
 	#########################

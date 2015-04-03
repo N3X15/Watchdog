@@ -1,0 +1,7 @@
+{%- macro git_addon(name, type, repo_url) %}
+  {{name}}:
+    type: {{type}}
+    repo:
+      type: git
+      remote: {{repo_url}}
+{% endmacro -%}

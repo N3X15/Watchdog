@@ -159,7 +159,7 @@ class SourceEngine(WatchdogEngine):
                     'say [Watchdog] Restarting now to update {}.'.format(typeID))
 
     def queueRestart(self, typeID):
-        WatchdogEngine.queueRestart(self)
+        WatchdogEngine.queueRestart(self, typeID)
 
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
@@ -372,4 +372,5 @@ class SourceEngine(WatchdogEngine):
     def end_process(self):
         WatchdogEngine.end_process(self)
         if self.asyncProcess:
+            self.asyncProcess.Stop() # calls child.kill
             self.asyncProcess.WaitUntilDone()

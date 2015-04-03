@@ -14,24 +14,10 @@ class ConfigAddon(BasicAddon):
         uid = hashlib.md5(finaldir).hexdigest()
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
         BasicAddon.__init__(self, engine, 'config', cfg)
-        self.rootdir = finaldir
         self.restartQueued = False
         
         self.validate()
-        
-def _EngineType(_id=None):
-    registry = {}
-    def wrap(f):
-        if _id is None:
-            fname_p = f.__name__.split('_')
-            _id = fname_p[1]
-        registry[_id] = f
-        # def wrapped_f(*args):
-        #    return f(*args)
-        # return wrapped_f
-        return f
-    wrap.all = registry
-    return wrap
+        self.repo.rootdir = self.engine.config['paths']['config']
 
 class EngineType(object):
     all = {}
@@ -123,7 +109,7 @@ class WatchdogEngine(object):
         elif typeID in ('IMMEDIATE', 'NOW'): 
             return RestartPriority.NOW
         
-    def queueRestart(self):
+    def queueRestart(self, component):
         self.restartQueued = True
         
     def doUpdateCheck(self):
@@ -207,6 +193,9 @@ class WatchdogEngine(object):
                 return True
         
         return False
+    
+    def checkForContentUpdates(self):
+        return
     
     def checkForUpdates(self):
         if self.checkForContentUpdates():
