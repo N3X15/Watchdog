@@ -2,10 +2,11 @@ import os
 from .base import AddonType, BasicAddon
 from .source.metamodsource import MetaModSource
 from .source.sourcemod import SourceMod
+from .source.sourcepawn import SourcePawnAddon
+from .source.limetech import LimetechExt
 
 def CreateAddon(engine, id, cfg):
     # print('{}: {}'.format(id,repr(cfg)))
-    # addon = AddonType.all[cfg['repo']['type']](id, cfg, os.path.join(root,id))
     addonclass = cfg.get('addon', 'basic')
     addon = AddonType.all[addonclass](engine, id, cfg)
     if not addon.validate():

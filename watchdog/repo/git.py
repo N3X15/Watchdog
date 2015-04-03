@@ -55,9 +55,10 @@ class GitRepo(RepoDir):
                     sys.exit(-1)
                 
             old_commit = self.repo.current_commit
+            cloned = not os.path.isdir(self.destination)
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
-            if old_commit != self.repo.current_commit:
+            if cloned or old_commit != self.repo.remote_commit:
                 if 'subdirs' in self.config:
                     with log.info('New commit detected (%s vs. %s), updating filesystem...',old_commit,self.repo.current_commit):
                         for src, dest in self.config['subdirs'].items():
@@ -66,8 +67,10 @@ class GitRepo(RepoDir):
                             if cleanup: os_utils.safe_rmtree(dest)
                             os_utils.copytree(src, dest)
                             log.info('Copied %s -> %s', src, dest)
+                else:
+                    log.info('Updated!')
                 return True
-        return False 
+        return False
 
     def remove(self):
         RepoDir.remove(self)

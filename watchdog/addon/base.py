@@ -9,6 +9,7 @@ from buildtools.bt_logging import log
 from buildtools import os_utils
 from watchdog.repo import CreateRepo
 
+'''
 def _AddonType(_id=None):
     registry = {}
     def wrap(f):
@@ -22,6 +23,7 @@ def _AddonType(_id=None):
         return f
     wrap.all = registry
     return wrap
+'''
 
 class AddonType(object):
     all = {}
@@ -59,8 +61,7 @@ class Addon(object):
     def remove(self):
         return False
     
-@AddonType('basic')
-class BasicAddon(Addon):
+class BaseBasicAddon(Addon):
     '''
     Just grabs from a repo. NBD.
     
@@ -68,20 +69,25 @@ class BasicAddon(Addon):
     '''
     ClassDestinations = {}
     def __init__(self, engine, id, cfg):
-        super(BasicAddon, self).__init__(engine, id, cfg)
+        super(BaseBasicAddon, self).__init__(engine, id, cfg)
         if 'dir' not in cfg: 
             self.clsType = cfg['type']
             root=BasicAddon.ClassDestinations[self.clsType]
             self.destination = os.path.join(root,id)
         else:
             self.destination=cfg['dir']
+        self.repo_dir=self.destination
         if 'repo' not in cfg:
             log.critical('Addon %r is missing its repository configuration!')
-        self.repo = CreateRepo(self, cfg['repo'], self.destination)
+        self.repo = None
         
     def validate(self):
-        return 'repo' in cfg and self.repo.validate()
-        
+        if 'repo' not in self.config:
+            log.critical('Addon %r is missing its repository configuration!')
+            return False
+        self.repo = CreateRepo(self, self.config['repo'], self.repo_dir)
+        return True
+    
     def preload(self):
         return self.repo.preload()
     
@@ -94,3 +100,11 @@ class BasicAddon(Addon):
     def remove(self):
         return self.repo.remove()
     
+@AddonType('basic')
+class BasicAddon(BaseBasicAddon):
+    '''
+    Just grabs from a repo. NBD.
+    
+    Used if `addon: basic` is specified. Also used by default.
+    '''
+    ClassDestinations = {}

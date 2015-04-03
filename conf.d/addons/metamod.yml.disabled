@@ -1,3 +1,4 @@
 addons:
   metamodsource:
     addon: metamodsource
+    version_group: '1.10'

@@ -21,10 +21,11 @@ class SourceMod(AlliedModdersBase):
     
     MODID = 'SourceMod'
     DROP_FORMAT = 'http://www.sourcemod.net/smdrop/{VERSION}/'
-    DROP_FILE_EXPRESSION = re.compile('sourcemod-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|mac)\.[a-z\.]+')
 
     def __init__(self, engine, id, cfg):
         super(SourceMod, self).__init__(engine, id, cfg)
+        
+        self.DROP_FILE_EXPRESSION = re.compile('sourcemod-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|mac)\.[a-z\.]+')
 
         self.drop_ext = '.zip'
         if self.os == AMOperatingSystem.LINUX:

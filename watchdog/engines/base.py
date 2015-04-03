@@ -17,6 +17,8 @@ class ConfigAddon(BasicAddon):
         self.rootdir = finaldir
         self.restartQueued = False
         
+        self.validate()
+        
 def _EngineType(_id=None):
     registry = {}
     def wrap(f):
@@ -191,7 +193,7 @@ class WatchdogEngine(object):
             for id, addonCfg in loadedAddons.items():
                 if id not in newAddons:
                     with log.info('Removing dead addon %r...', id):
-                        addon = CreateAddon(id, addonCfg)
+                        addon = CreateAddon(self, id, addonCfg)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:

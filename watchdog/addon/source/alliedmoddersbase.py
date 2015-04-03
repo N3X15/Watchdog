@@ -25,9 +25,10 @@ class AlliedModdersBase(SourceEngineAddon):
     MODID = 'base'  # Unique ID of the mod.  Used for caches.
     CHECK_DELAY = 60 * 5  # 5 minutes
     DROP_FORMAT = ''  # 'http://www.sourcemod.net/smdrop/{VERSION}/'
-    DROP_FILE_EXPRESSION = None  # re.compile('sourcemod-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|osx)\.[a-z\.]+')
     def __init__(self, engine, id, cfg):
         super(AlliedModdersBase, self).__init__(engine, id, cfg)
+        
+        self.DROP_FILE_EXPRESSION = None
 
         self.os = ''
         if sys.platform == 'win32':

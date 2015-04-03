@@ -21,10 +21,10 @@ class HgRepo(RepoDir):
         if 'subdirs' in self.config:
             self.rootdir = os.path.dirname(self.destination)
             self.destination = os.path.join(utils.getCacheDir(), 'repos', self.addon.id)
-        self.repo = GitRepository(self.destination, self.remote, noisy_clone=True)
+        self.repo = HgRepository(self.destination, self.remote, noisy_clone=True)
         
     def validate(self):
-        return super(GitRepo, self).validate()
+        return super(HgRepo, self).validate()
         
     def preload(self):
         if not os.path.isdir(self.destination):
@@ -55,9 +55,10 @@ class HgRepo(RepoDir):
                     sys.exit(-1)
                 
             old_rev = self.repo.current_rev
+            cloned = not os.path.isdir(self.destination)
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
             # assert self.repo.current_commit == self.repo.remote_commit
-            if old_rev != self.repo.current_rev:
+            if cloned or old_rev != self.repo.current_rev:
                 if 'subdirs' in self.config:
                     with log.info('New revision detected (%s vs. %s), updating filesystem...',old_rev,self.repo.current_rev):
                         for src, dest in self.config['subdirs'].items():
@@ -70,7 +71,7 @@ class HgRepo(RepoDir):
         return False 
 
     def remove(self):
-        RepoDir.remove(self)
+        super(HgRepo, self).remove()
         if 'subdirs' in self.config:
             for src, dest in self.config['subdirs'].items():
                 dest = os.path.join(self.rootdir, dest)

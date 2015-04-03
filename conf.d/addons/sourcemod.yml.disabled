@@ -1,3 +1,4 @@
 addons:
   sourcemod:
     addon: sourcemod
+    version_group: 1.7
