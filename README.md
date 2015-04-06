@@ -30,7 +30,7 @@ Simple:
 
 ```bash
 git pull
-git submodule update
+git submodule update --init --recursive
 ```
 
 If you're missing anything, Watchdog will tell you what to do.

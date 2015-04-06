@@ -143,10 +143,10 @@ class WatchdogEngine(object):
         
         restartComponent = None
             
-        if self.updateAddons(): 
-            restartComponent = 'addon'
         if self.updateContent(): 
             restartComponent = 'content'
+        if self.updateAddons(): 
+            restartComponent = 'addon'
         if self.updateConfig(): 
             restartComponent = 'config'
         
