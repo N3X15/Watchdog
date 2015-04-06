@@ -1,16 +1,5 @@
+{% from script_dir + '/_jinja/addons.macro.yml' import git_addon %}
 addons:
-  stool_precisionalign:
-    type: lua
-    repo:
-      remote: https://github.com/N3X15/stool_precisionalign.git
-      type: git
-  stool_axisbscentre:
-    type: lua
-    repo:
-      remote: https://github.com/N3X15/stool_axisbscentre.git
-      type: git
-  physgun_buildmode:
-    type: lua
-    repo:
-      remote: https://github.com/N3X15/physgun_buildmode.git
-      type: git
+  {{ git_addon('stool_precisionalign','lua','https://github.com/N3X15/stool_precisionalign.git') }}
+  {{ git_addon('stool_axisbscentre','lua','https://github.com/N3X15/stool_axisbscentre.git') }}
+  {{ git_addon('physgun_buildmode','lua','https://github.com/N3X15/physgun_buildmode.git') }}

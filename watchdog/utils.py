@@ -39,11 +39,9 @@ def del_empty_dirs(src_dir):
                 totalDel += 1
     return totalDel
 
-
 class LoggedProcess(AsyncCommand):
 
-    def __init__(self, command, logID, logSubDir=None, stdout=None, stderr=None, echo=False, env=None, critical=False):
-        AsyncCommand.__init__(
-            self, command, stdout=stdout, stderr=stderr, echo=echo, env=env, critical=critical)
+    def __init__(self, command, logID, logSubDir=None, stdout=None, stderr=None, echo=False, env=None, PTY=False, debug=False):
+        AsyncCommand.__init__(self, command, stdout=stdout, stderr=stderr, echo=echo, env=env, refName=logID, PTY=PTY, debug=debug)
 
-        self.log = logToFile(logID, sub_dir=logSubDir, formatter=logging.Formatter(fmt='%(asctime)s [%(levelname)-8s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'))
+        self.log = logToFile(logID, sub_dir=logSubDir, formatter=logging.Formatter(fmt='%(asctime)s [%(levelname)-8s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'), announce_location=True, mode='a')

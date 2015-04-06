@@ -318,8 +318,7 @@ class SourceEngine(WatchdogEngine):
                     log.info('%d players connected.', self.numPlayers)
                 if self.numPlayers == 0 and self.restartQueued:
                     log.info('RESTARTING!')
-                    self.end_process()
-                    self.start_process()
+                    self.applyUpdates(True)
         except Exception as e:
             log.error(e)
             return False
@@ -333,7 +332,7 @@ class SourceEngine(WatchdogEngine):
         return False
 
     def updateContent(self):
-        for appid, content in self.content.items():
+        for _, content in self.content.items():
             attempts = 0
             while not content.IsUpdated() and attempts < 3:
                 content.Update()
@@ -364,7 +363,7 @@ class SourceEngine(WatchdogEngine):
 
         with Chdir(self.gamedir):
             #cmd_daemonize(srcds_command, echo=True, critical=True)
-            self.asyncProcess = LoggedProcess(srcds_command, 'srcds', echo=True, critical=True)
+            self.asyncProcess = LoggedProcess(srcds_command, 'srcds', echo=True, PTY=True, debug=False)
             self.asyncProcess.Start()
 
         self.find_process()

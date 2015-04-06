@@ -15,7 +15,7 @@ First, you need to download Watchdog and install its dependencies.  If you don't
 
 ```bash 
 git clone https://github.com/N3X15/Watchdog watchdog
-pip install yaml Jinja2 psutil pyparsing
+pip install pyyaml Jinja2 psutil pyparsing twisted
 git submodule update --init --recursive
 ```
 

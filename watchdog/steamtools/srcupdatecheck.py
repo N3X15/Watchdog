@@ -79,10 +79,9 @@ class APICallBadResponse(APICallError):
 class APICallBadResponseStructure(APICallError):
     def __str__(self):
         return 'API responded with invalid XML structure.'
-    
 
 def expectKeyIn(key,raw_req,raw_res):
-    if key not in raw_res:
+    if not key or key not in raw_res:
         raise APICallError(raw_req,raw_res,key)
     
 LAST_REQUEST=None

@@ -8,3 +8,8 @@ addons:
       # Updated by yours truly :^)
       remote: https://github.com/N3X15/spacebuild.git
       branch: sb3-dev
+  sbep:
+    type: lua
+    repo:
+      type: git
+      remote: https://github.com/SnakeSVx/sbep.git
