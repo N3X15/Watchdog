@@ -77,7 +77,7 @@ class AlliedModdersBase(SourceEngineAddon):
 
         self.current_version = 0
         self.current_url = None
-
+        self.current_destination = ''
         if os.path.isfile(self.cache_data):
             cache = {}
             with open(self.cache_data, 'r') as f:
@@ -89,12 +89,19 @@ class AlliedModdersBase(SourceEngineAddon):
             if 'delay' in cache:
                 self.updateCheckDelay = cache['delay']
                 self.updateCheckDelay.minDelay = self.CHECK_DELAY
+            if 'destination' in cache:
+                self.current_destination = cache['destination']
+                
+        if self.current_destination!=self.destination:
+            self.current_version=-1
+            log.warn('Destination changed, forcing re-install.')
 
     def SaveCache(self):
         cache = {
             'build': self.current_version,
             'url': self.update_url,
-            'delay': self.updateCheckDelay
+            'delay': self.updateCheckDelay,
+            'destination': self.destination
         }
         with open(self.cache_data, 'w') as f:
             yaml.dump(cache, f, default_flow_style=False)

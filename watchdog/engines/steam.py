@@ -179,8 +179,7 @@ class SourceEngine(WatchdogEngine):
                 log.warn('0 players online, skipping RCON warning.')
                 return
             with RCON((ip, port), passwd) as rcon:
-                rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(
-                    typeID))
+                rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
 
     def compressFile(self, src, dest):
         #log.info('bz2 %s %s',src,dest)
@@ -342,19 +341,34 @@ class SourceEngine(WatchdogEngine):
                 content.Update()
                 attempts += 1
 
+    def _applyDefaultsTo(self, defaults, subject, message=None):
+        for k,v in defaults.items():
+            if k not in subject:
+                subject[k]=v
+                if message is not None:
+                    log.info(message,key=k,value=v)
+    
     def start_process(self):
         srcds_command = [os.path.join(self.gamedir, self.config.get('daemon.launcher', 'srcds_run'))]
 
         srcds_command.append('-norestart')
+        
+        daemon_required = {'ip':self.config.get('monitor.ip')}
+        daemon_config = self.config.get('daemon.srcds_args', {})
+        self._applyDefaultsTo(daemon_required, daemon_config, 'Configuration entry {key!r} is not present in daemon.srcds_args.  Default value {value!r} is set.')
+        
+        game_required = {}
+        game_args = self.config.get('daemon.game_args', {})
+        self._applyDefaultsTo(game_required, game_args, 'Configuration entry {key!r} is not present in daemon.game_args.  Default value {value!r} is set.')
 
-        for key, value in self.config.get('daemon.srcds_args', {}).items():
+        for key, value in daemon_config.items():
             if value is None:
                 continue
             srcds_command.append('-' + key)
             if value != '':
                 srcds_command.append(str(value))
 
-        for key, value in self.config.get('daemon.game_args', {}).items():
+        for key, value in game_args.items():
             if value is None:
                 continue
             srcds_command.append('+' + key)
