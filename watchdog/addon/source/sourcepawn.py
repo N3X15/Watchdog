@@ -12,11 +12,11 @@ from buildtools.os_utils import Chdir, cmd
 @AddonType('sourcepawn')
 class SourcePawnAddon(BaseBasicAddon): 
     FILECACHE_VERSION = 2
-    def __init__(self, engine, id, cfg):
+    def __init__(self, engine, _id, cfg):
         cfg['type']='source-addon'
-        super(SourcePawnAddon, self).__init__(engine, id, cfg)
+        super(SourcePawnAddon, self).__init__(engine, _id, cfg)
         
-        self.cache_dir = os.path.join(self.engine.cache_dir, 'SourcePawn', id)
+        self.cache_dir = os.path.join(self.engine.cache_dir, 'SourcePawn', self.id)
         self.repo_dir = os.path.join(self.cache_dir, 'staging')
         
         self.sm_dir = os.path.join(BasicAddon.ClassDestinations['source-addon'], 'sourcemod')
@@ -55,7 +55,7 @@ class SourcePawnAddon(BaseBasicAddon):
                     version, data = yaml.load_all(f)
                     if version == self.FILECACHE_VERSION:
                         self.installed_files = data['installed-files']
-        except Exception as e:
+        except Exception as e: #IGNORE:broad-except
             log.error(e)
             return False
         return True
@@ -121,11 +121,11 @@ class SourcePawnAddon(BaseBasicAddon):
     def update(self):
         if super(SourcePawnAddon, self).update(): 
             with log.info('Installing %s from %s...',self.id,self.repo_dir):
-                for root, dirs, files in os.walk(self.repo_dir):
+                for root, _, files in os.walk(self.repo_dir):
                     #with log.info('Looking in %s...',root):
-                    for file in files:
-                        fullpath = os.path.join(root, file)
-                        _, ext = os.path.splitext(file)
+                    for f in files:
+                        fullpath = os.path.join(root, f)
+                        _, ext = os.path.splitext(f)
                         ext = ext.strip('.')
                         relpath = os.path.relpath(fullpath, self.repo_dir)
                         
@@ -158,7 +158,7 @@ class SourcePawnAddon(BaseBasicAddon):
     
     def remove(self):
         super(SourcePawnAddon, self).remove()
-        for file in self.installed_files:
-            if os.path.isfile(file):
-                os.remove(file)
-                log.info('rm %s', file)
+        for f in self.installed_files:
+            if os.path.isfile(f):
+                os.remove(f)
+                log.info('rm %s', f)

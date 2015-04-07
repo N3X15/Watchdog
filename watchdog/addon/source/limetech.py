@@ -3,12 +3,12 @@ Created on Mar 12, 2015
 
 @author: Rob
 '''
-import os, sys, yaml, re, tempfile
+import os, re, tempfile
 
-from watchdog.addon.source.base import SourceEngineAddon
+#from watchdog.addon.source.base import SourceEngineAddon
 
-from buildtools import http, os_utils
-from buildtools.bt_logging import log
+#from buildtools import http, os_utils
+#from buildtools.bt_logging import log
 from buildtools.os_utils import Chdir, cmd
 from watchdog.addon.source.alliedmoddersbase import AlliedModdersBase, AMOperatingSystem
 from watchdog.addon.base import AddonType
@@ -19,12 +19,12 @@ class LimetechExt(AlliedModdersBase):
     MODID = 'LimetechExtensions'
     DROP_FORMAT = 'https://builds.limetech.org/files/'
 
-    def __init__(self, engine, id, cfg):
-        super(LimetechExt, self).__init__(engine, id, cfg)
+    def __init__(self, engine, _id, cfg):
+        super(LimetechExt, self).__init__(engine, _id, cfg)
         
         # steamtools-0.9.0-git170-2d26276-windows.zip
         # connect-1.2.0-hg36-windows.zip
-        self.DROP_FILE_EXPRESSION = re.compile(id+'-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
+        self.DROP_FILE_EXPRESSION = re.compile(id+r'-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
 
         self.drop_ext = '.zip'
         if self.os == AMOperatingSystem.LINUX:

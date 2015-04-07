@@ -1,20 +1,20 @@
 import os
-import socket
 import time
 import shutil
 import sys
+
+# This crap always triggers an import error in PEP8, ignore it.
+from valve.source.a2s import ServerQuerier
+from valve.source.rcon import RCON
 
 from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
 from watchdog.steamtools import srcupdatecheck
 from buildtools.os_utils import cmd, Chdir, TimeExecution
 from buildtools.bt_logging import log
 from buildtools import os_utils, Config
-from valve.source.a2s import ServerQuerier
-#from pprint import pprint
-from valve.source.rcon import RCON
-#from watchdog.steamtools.vdf import VDFFile
 from watchdog.utils import del_empty_dirs, LoggedProcess
 
+STEAMCMD = ''
 STEAMCMD_USERNAME = None
 STEAMCMD_PASSWORD = None
 STEAMCMD_STEAMGUARD = None
@@ -25,9 +25,9 @@ class SteamContent(object):
     Lookup = {}
 
     @classmethod
-    def LoadDefs(cls, dir):
+    def LoadDefs(cls, dirname):
         yml = Config(None, template_dir='/')
-        yml.LoadFromFolder(dir)
+        yml.LoadFromFolder(dirname)
         # pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():
             idents = [appIdent] + appConfig.get('aliases', [])
@@ -55,19 +55,18 @@ class SteamContent(object):
         self.updatable = cfg.get('updatable', True)
         self.requires_login = cfg.get('requires-login', False)
         self.aliases = []
+        self.destination = ''
+        self.steamInf = ''
 
     def Configure(self, cfg):
         if self.requires_login:
             if STEAMCMD_USERNAME is None or STEAMCMD_PASSWORD is None:
-                log.error(
-                    '%s requires a username and password to access.', self.appName)
+                log.error('%s requires a username and password to access.', self.appName)
                 sys.exit(1)
-        self.destination = os.path.expanduser(
-            cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
+        self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
         self.steamInf = None
         if self.game != '':
-            self.steamInf = os.path.join(
-                self.destination, self.game, 'steam.inf')
+            self.steamInf = os.path.join(self.destination, self.game, 'steam.inf')
 
     def IsUpdated(self):
         'Returns false if outdated.'
@@ -98,7 +97,7 @@ class SourceEngine(WatchdogEngine):
     RESTART_ON_CHANGE = True
 
     def __init__(self, cfg):
-        global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME
+        global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME #IGNORE:global-statement Bite me.
 
         super(SourceEngine, self).__init__(cfg)
 
@@ -106,8 +105,7 @@ class SourceEngine(WatchdogEngine):
         STEAMCMD_PASSWORD = cfg.get('auth.steam.password', None)
         STEAMCMD_STEAMGUARD = cfg.get('auth.steam.steamguard', None)
 
-        STEAMCMD = os.path.expanduser(
-            os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
+        STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
 
         self.content = {}
@@ -128,8 +126,14 @@ class SourceEngine(WatchdogEngine):
                 self, cfg.get('git.config'), os.path.join(self.gamedir, self.game_content.game))
 
         self.numPlayers = 0
-        
+
         self.asyncProcess = None
+        
+        #TODO: Refactor into pluggable.
+        self.fastDLPaths = []
+        self.nScanned = 0
+        self.nNew = 0
+        self.nRemoved = 0
 
     def updateAlert(self, typeID=''):
         ip, port = self.config.get(
@@ -256,10 +260,10 @@ class SourceEngine(WatchdogEngine):
                 for scan_dir in scan_dirs:
                     log.info('Scanning %s...', scan_dir)
                     for root, dirs, files in os.walk(os.path.join(gamepath, scan_dir)):
-                        for file in files:
-                            processFile(os.path.join(root, file))
-                for file in forced_files:
-                    processFile(file)
+                        for f in files:
+                            processFile(os.path.join(root, f))
+                for f in forced_files:
+                    processFile(f)
             # sys.exit(1)
             with TimeExecution('Removed dead files'):
                 for root, dirs, files in os.walk(destdir):
@@ -367,9 +371,9 @@ class SourceEngine(WatchdogEngine):
             self.asyncProcess.Start()
 
         self.find_process()
-        
+
     def end_process(self):
         WatchdogEngine.end_process(self)
         if self.asyncProcess:
-            self.asyncProcess.Stop() # calls child.kill
+            self.asyncProcess.Stop()  # calls child.kill
             self.asyncProcess.WaitUntilDone()

@@ -1,12 +1,9 @@
-import psutil, os, hashlib, time, sys
+import psutil, os, hashlib, time
+import yaml
 
 from buildtools.bt_logging import log
 from watchdog.addon import CreateAddon, BasicAddon
 from buildtools import os_utils
-import logging
-from watchdog.steamtools.vdf import VDFFile
-import yaml
-import traceback
 from watchdog import utils
 
 class ConfigAddon(BasicAddon):
@@ -31,7 +28,7 @@ class EngineType(object):
         EngineType.all[self.id] = f
         return f
     
-class RestartPriority:
+class RestartPriority: #IGNORE:no-init (It's an enum)
     ROUND_END = 0
     NOW = 1
     
@@ -55,12 +52,12 @@ class WatchdogEngine(object):
             BasicAddon.ClassDestinations[classID] = classDest
         
         self.addons = {}
-        for id, acfg in self.config['addons'].items():
-            addon = CreateAddon(self, id, acfg)
+        for aid, acfg in self.config['addons'].items():
+            addon = CreateAddon(self, aid, acfg)
             if addon and addon.validate():
-                self.addons[id] = addon
+                self.addons[aid] = addon
             else:
-                log.error('Addon %s failed to load.',id)
+                log.error('Addon %s failed to load.',aid)
                 
         self.configrepo = None
         self.restartQueued = False
@@ -102,14 +99,14 @@ class WatchdogEngine(object):
         '''True when content has changed.'''
         return False
     
-    def getRestartPriority(self, type, default='DELAY'):
-        typeID = self.config.get('monitor.restart-type.' + type, 'delay').upper()
+    def getRestartPriority(self, typeName, default='DELAY'):
+        typeID = self.config.get('monitor.restart-type.' + typeName, default).upper()
         if typeID in ('DELAY', 'DELAYED', 'ROUND', 'ROUND END', 'ROUND_END'): 
             return RestartPriority.ROUND_END
         elif typeID in ('IMMEDIATE', 'NOW'): 
             return RestartPriority.NOW
         
-    def queueRestart(self, component):
+    def queueRestart(self, _):
         self.restartQueued = True
         
     def doUpdateCheck(self):
@@ -168,18 +165,18 @@ class WatchdogEngine(object):
             if os.path.isfile(addonInfoFile):
                 with open(addonInfoFile, 'r') as f:
                     loadedAddons = yaml.load(f)
-            for id, addon in self.addons.items():
+            for aid, addon in self.addons.items():
                 if addon.update():
-                    log.info('%s has changed! Triggering restart.', id)
+                    log.info('%s has changed! Triggering restart.', aid)
                     changed = True
-                if id not in loadedAddons:
-                    log.info('%s is new! Triggering restart.', id)
+                if aid not in loadedAddons:
+                    log.info('%s is new! Triggering restart.', aid)
                     changed = True
-                newAddons[id] = addon.config
-            for id, addonCfg in loadedAddons.items():
-                if id not in newAddons:
-                    with log.info('Removing dead addon %r...', id):
-                        addon = CreateAddon(self, id, addonCfg)
+                newAddons[aid] = addon.config
+            for aid, addonCfg in loadedAddons.items():
+                if aid not in newAddons:
+                    with log.info('Removing dead addon %r...', aid):
+                        addon = CreateAddon(self, aid, addonCfg)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:
@@ -187,9 +184,9 @@ class WatchdogEngine(object):
         return changed
         
     def _checkAddonsForUpdates(self):
-        for id, addon in self.addons.items():
+        for aid, addon in self.addons.items():
             if not addon.isUp2Date():
-                log.warn('Addon %s is out of date!', id)
+                log.warn('Addon %s is out of date!', aid)
                 return True
         
         return False
