@@ -23,11 +23,15 @@ class LimetechExt(AlliedModdersBase):
         super(LimetechExt, self).__init__(engine, id, cfg)
         
         # steamtools-0.9.0-git170-2d26276-windows.zip
-        self.DROP_FILE_EXPRESSION = re.compile(id+'-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-[a-f0-9]+-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
+        # connect-1.2.0-hg36-windows.zip
+        self.DROP_FILE_EXPRESSION = re.compile(id+'-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
 
         self.drop_ext = '.zip'
         if self.os == AMOperatingSystem.LINUX:
             self.drop_ext = '.tar.gz'
+            
+    def getID(self):
+        return self.id
     
     def ForceUpdate(self):
         dirname = tempfile.mkdtemp(prefix='limetech')

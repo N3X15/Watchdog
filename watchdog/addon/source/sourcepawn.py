@@ -11,7 +11,7 @@ from buildtools.os_utils import Chdir, cmd
 
 @AddonType('sourcepawn')
 class SourcePawnAddon(BaseBasicAddon): 
-    FILECACHE_VERSION = 1
+    FILECACHE_VERSION = 2
     def __init__(self, engine, id, cfg):
         cfg['type']='source-addon'
         super(SourcePawnAddon, self).__init__(engine, id, cfg)
@@ -20,15 +20,23 @@ class SourcePawnAddon(BaseBasicAddon):
         self.repo_dir = os.path.join(self.cache_dir, 'staging')
         
         self.sm_dir = os.path.join(BasicAddon.ClassDestinations['source-addon'], 'sourcemod')
+        
         self.scripts_dir = os.path.join(self.sm_dir, 'scripting')
+        self.includes_dir = os.path.join(self.sm_dir, 'scripting','include')
+        
         self.spcomp = os.path.join(self.scripts_dir, 'spcomp')
         self.smx_dir = os.path.join(self.sm_dir, 'scripting', 'compiled')
         
         self.file_cache = os.path.join(self.cache_dir, 'files.yml')
+        
+        # config
         self.exclude_dirs = self.config.get('exclude-dirs', ['.git', '.hg', '.svn'])
+        
+        
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
         
         self.installed_files = []
+        self.compilable_files = {}
         
     def validate(self):
         if not super(SourcePawnAddon, self).validate():
@@ -68,7 +76,23 @@ class SourcePawnAddon(BaseBasicAddon):
         if filename not in self.installed_files:
             self.installed_files.append(filename)
     
+    def registerCompilable(self, filename,destdir):
+        if filename not in self.compilable_files:
+            self.compilable_files[filename]=destdir
+    
     def _handle_smx(self, src, destdir):
+        return self.copyfile(src, os.path.join(self.smx_dir,destdir))
+    
+    def _handle_inc(self, src, destdir):
+        return self.copyfile(src, os.path.join(self.scripts_dir,destdir))
+    
+    def _handle_sp(self, src, destdir):
+        _, filename = os.path.split(src)
+        dest = os.path.join(destdir, filename)
+        self.registerCompilable(dest,destdir)
+        return self.copyfile(src, os.path.join(self.scripts_dir,destdir))
+    
+    def copyfile(self,src,destdir):
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
             log.info('mkdir %s', destdir)
@@ -79,10 +103,10 @@ class SourcePawnAddon(BaseBasicAddon):
             return False
         log.info('cp %s %s', src, dest)
         shutil.copy2(src, dest)
-        
         return True
-    
-    def _handle_sp(self, src, destdir):
+        
+    def _compile(self,src,destdir):
+        destdir = os.path.join(self.smx_dir,destdir)
         if not os.path.isdir(destdir):
             os.makedirs(destdir)
             log.info('mkdir %s', destdir)
@@ -90,15 +114,13 @@ class SourcePawnAddon(BaseBasicAddon):
         naked_filename, _ = os.path.splitext(filename)
         dest = os.path.join(destdir, naked_filename + '.smx')
         self.registerFile(dest)
-        if not os_utils.canCopy(src, dest):
-            return False
         with Chdir(self.scripts_dir,quiet=True):
             cmd([self.spcomp, src, '-o' + dest], critical=True, echo=True, show_output=False)
         return True
     
     def update(self):
         if super(SourcePawnAddon, self).update(): 
-            with log.info('Recompiling %s from %s...',self.id,self.repo_dir):
+            with log.info('Installing %s from %s...',self.id,self.repo_dir):
                 for root, dirs, files in os.walk(self.repo_dir):
                     #with log.info('Looking in %s...',root):
                     for file in files:
@@ -118,17 +140,18 @@ class SourcePawnAddon(BaseBasicAddon):
                             if relpathpart in self.exclude_dirs:
                                 ignore = True
                         if ignore: continue
-                        if ext not in ('sp', 'smx'):
+                        if ext not in ('sp', 'smx', 'inc'):
                             #log.info('%s (bad ext %s)',relpath,ext)
                             continue
                         relpath = '/'.join(relpathparts)
                         
                         #self.fastDLPaths.append(relpath)
-                        
-                        fdestdir = os.path.join(self.smx_dir, os.sep.join(relpathparts[:-1]))
-                        getattr(self, '_handle_' + ext)(fullpath, fdestdir)
+                        getattr(self, '_handle_' + ext)(fullpath, os.sep.join(relpathparts[:-1]))
                         #if getattr(self, '_handle_' + ext)(fullpath, fdestdir):
                         #    #self.nNew += 1
+                with log.info('Compiling...'):
+                    for src,destdir in self.compilable_files.items():
+                        self._compile(src, destdir)
                 self.SaveState()
                 return True
         return False

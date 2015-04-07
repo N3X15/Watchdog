@@ -22,9 +22,11 @@ timing.SetupYaml()
 # @AddonType('sourcemod')
 class AlliedModdersBase(SourceEngineAddon):
     '''Base for source engine mods released by Allied Modders (SourceMod, etc)'''
-    MODID = 'base'  # Unique ID of the mod.  Used for caches.
+    MODID = 'base'  # Unique ID of the mod.  Used for caches. CHECK getID(), NOT THIS.
     CHECK_DELAY = 60 * 5  # 5 minutes
     DROP_FORMAT = ''  # 'http://www.sourcemod.net/smdrop/{VERSION}/'
+    def getID(self):
+        return self.MODID
     def __init__(self, engine, id, cfg):
         super(AlliedModdersBase, self).__init__(engine, id, cfg)
         
@@ -42,11 +44,11 @@ class AlliedModdersBase(SourceEngineAddon):
             
         self.versiongroup = cfg['version_group']
         
-        self.cache_dir = os.path.join(self.engine.cache_dir,self.MODID)  # os.path.join(self.engine.gamedir, 'cache', self.MODID)
+        self.cache_dir = os.path.join(self.engine.cache_dir,self.getID())  # os.path.join(self.engine.gamedir, 'cache', self.getID())
         self.cache_data = os.path.join(self.cache_dir, 'AlliedModdersBase.yml')
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
         
-        self.updateCheckDelay = timing.SimpleDelayer(self.MODID + '.update', min_delay=self.CHECK_DELAY)
+        self.updateCheckDelay = timing.SimpleDelayer(self.getID() + '.update', min_delay=self.CHECK_DELAY)
         self.destination = BasicAddon.ClassDestinations['source-addon']
         self.avail_versions = {}
         
@@ -106,10 +108,6 @@ class AlliedModdersBase(SourceEngineAddon):
             req.useragent='Wget/1.16 (linux-gnu)' # Fuck you, AM.
             req.referer = self.base_uri
             txt = req.GetString()
-            #dbgFilename=os.path.join(self.cache_dir,'recv.htm')
-            #with open(dbgFilename,'w') as f:
-            #    f.write(txt)
-            #log.info('Wrote %s.',dbgFilename)
             for match in self.DROP_FILE_EXPRESSION.finditer(txt):
                 version = int(match.group('build'))
                 url = self.base_uri + match.group(0)
@@ -117,6 +115,12 @@ class AlliedModdersBase(SourceEngineAddon):
                 if version not in self.avail_versions[osID]: 
                     self.avail_versions[osID].append((version,url))
                     #log.info('%s []= %s (%s)',osID,version,url)
+            if len(self.avail_versions)==0:
+                with log.error('UNABLE TO FIND MATCHES FOR %s AT %s',self.DROP_FILE_EXPRESSION,self.base_uri):
+                    dbgFilename=os.path.join(self.cache_dir,'recv.htm')
+                    with open(dbgFilename,'w') as f:
+                        f.write(txt)
+                    log.info('Wrote %s.',dbgFilename)
         latestStableBuild = 0
         latestStableURL = ''
         latestAnyBuild = 0
@@ -130,6 +134,7 @@ class AlliedModdersBase(SourceEngineAddon):
                 if build > latestStableBuild: 
                     latestStableBuild = build
                     latestStableURL = url
+        assert latestAnyBuild > 0
         # if stable:
         #return latestStableBuild, latestStableURL
         # else:
@@ -139,10 +144,10 @@ class AlliedModdersBase(SourceEngineAddon):
         return
 
     def update(self):
-        with log.info('Searching for %s updates (%s):', self.MODID, self.versiongroup):
+        with log.info('Searching for %s updates (%s):', self.getID(), self.versiongroup):
             latestBuild, latestURL = self._updateCheck()
-            log.info('Latest %s version: build %r', self.MODID, latestBuild)
-            log.info('Current %s version: build %r', self.MODID, self.current_version)
+            log.info('Latest %s version: build %r', self.getID(), latestBuild)
+            log.info('Current %s version: build %r', self.getID(), self.current_version)
             if self.current_version != latestBuild:
                 self.update_url = latestURL
                 self.ForceUpdate()
