@@ -24,7 +24,7 @@ class LimetechExt(AlliedModdersBase):
         
         # steamtools-0.9.0-git170-2d26276-windows.zip
         # connect-1.2.0-hg36-windows.zip
-        self.DROP_FILE_EXPRESSION = re.compile(id+r'-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
+        self.DROP_FILE_EXPRESSION = re.compile(_id + r'-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)')
 
         self.drop_ext = '.zip'
         if self.os == AMOperatingSystem.LINUX:

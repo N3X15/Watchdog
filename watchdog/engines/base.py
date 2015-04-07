@@ -10,6 +10,7 @@ class ConfigAddon(BasicAddon):
     def __init__(self, engine, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
+        cfg['type'] = 'config'
         BasicAddon.__init__(self, engine, 'config', cfg)
         self.restartQueued = False
         
