@@ -81,8 +81,8 @@ class APICallBadResponseStructure(APICallError):
         return 'API responded with invalid XML structure.'
 
 def expectKeyIn(key,raw_req,raw_res):
-    if not key or key not in raw_res:
-        raise APICallError(raw_req,raw_res,key)
+    if not isinstance(raw_res,dict) or key not in raw_res:
+        raise APICallError(raw_req,raw_res)
     
 LAST_REQUEST=None
 def SteamAPICall(path, rawargs={}):

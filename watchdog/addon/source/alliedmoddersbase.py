@@ -98,9 +98,9 @@ class AlliedModdersBase(SourceEngineAddon):
 
     def SaveCache(self):
         cache = {
-            'build': self.current_version,
-            'url': self.update_url,
-            'delay': self.updateCheckDelay,
+            'build':       self.current_version,
+            'url':         self.update_url,
+            'delay':       self.updateCheckDelay,
             'destination': self.destination
         }
         with open(self.cache_data, 'w') as f:
