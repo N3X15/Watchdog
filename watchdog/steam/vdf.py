@@ -1,8 +1,7 @@
-import collections, logging, pprint
+import collections, logging
 import pyparsing as pyp
-from collections import OrderedDict
 
-def _toDict(s,l,t):
+def _toDict(s,l,t): #IGNORE:unused-argument
     out = {}
     #print(t[0])
     for k,v in t:
@@ -18,9 +17,7 @@ class VDFNode:
     def FromDict(cls, _dict, root=True):
         node = VDFNode(root=root)
         for k, v in _dict.items():
-            if type(v) is dict:
-                v = VDFNode.FromDict(v, False)
-            elif isinstance(v, collections.OrderedDict):
+            if isinstance(v, (dict,collections.OrderedDict)):
                 v = VDFNode.FromDict(v, False)
             node.children[k] = v
         return node

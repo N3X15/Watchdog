@@ -41,13 +41,7 @@ else:
     import urllib.request
     import urllib.parse
 
-# try:
 from buildtools.bt_logging import log
-# except:
-#    import logging as log
-#
-# Steam API Call
-#
 
 class APICallError(Exception):
     def __init__(self, raw_req, raw_res):

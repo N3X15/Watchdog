@@ -5,6 +5,8 @@ from buildtools.bt_logging import log
 from watchdog.addon import CreateAddon, BasicAddon
 from buildtools import os_utils
 from watchdog import utils
+from watchdog.utils import Event
+from watchdog.plugin import CreatePlugin
 
 class ConfigAddon(BasicAddon):
     def __init__(self, engine, cfg, finaldir):
@@ -62,6 +64,30 @@ class WatchdogEngine(object):
                 
         self.configrepo = None
         self.restartQueued = False
+        
+        self.plugins = {}
+        self._initialized=False
+        #: No args
+        self.initialized = Event()
+        for plid, plcfg in self.config.get('plugins',{}).items():
+            self.load_plugin(plid,plcfg)
+        
+        # EVENTS
+        ################
+        
+        #: No args.
+        self.updated = Event()
+        #: addon_names(list)
+        self.addons_updated = Event()
+        #: line(LogLine) 
+        self.log_received = Event()
+        
+    def load_plugin(self,plID,plCfg=None):
+        plugin = CreatePlugin(plID, self, plCfg)
+        if plugin:
+            self.plugins[plID] = plugin
+        else:
+            log.error('Plugin %s failed to load.',plID)
                 
     def find_process(self):
         if self.process is None or not self.process.is_running():
@@ -159,6 +185,7 @@ class WatchdogEngine(object):
     def updateAddons(self): 
         '''Returns True when an addon has changed.'''
         changed = False
+        updated_addons=[]
         with log.info('Updating addons...'):
             loadedAddons = {}
             newAddons = {}
@@ -170,6 +197,7 @@ class WatchdogEngine(object):
                 if addon.update():
                     log.info('%s has changed! Triggering restart.', aid)
                     changed = True
+                    updated_addons.append(aid)
                 if aid not in loadedAddons:
                     log.info('%s is new! Triggering restart.', aid)
                     changed = True
@@ -182,6 +210,7 @@ class WatchdogEngine(object):
                         changed = True
             with open(addonInfoFile, 'w') as f:
                 yaml.dump(newAddons, f, default_flow_style=False)
+        self.addons_updated.fire(addon_names=updated_addons)
         return changed
         
     def _checkAddonsForUpdates(self):

@@ -39,6 +39,20 @@ def del_empty_dirs(src_dir):
                 totalDel += 1
     return totalDel
 
+class Event(object):
+    def __init__(self):
+        self.callbacks=[]
+        
+    def subscribe(self, callback):
+        self.callbacks.append(callback)
+        
+    def unsubscribe(self, callback):
+        self.callbacks.remove(callback)
+        
+    def fire(self,**kwargs):
+        for cb in self.callbacks:
+            cb(**kwargs)
+
 class LoggedProcess(AsyncCommand):
 
     def __init__(self, command, logID, logSubDir=None, stdout=None, stderr=None, echo=False, env=None, PTY=False, debug=False):

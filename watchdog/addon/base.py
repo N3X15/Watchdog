@@ -10,23 +10,6 @@ from buildtools.bt_logging import log
 from buildtools import os_utils
 from watchdog.repo import CreateRepo
 
-'''
-def _AddonType(_id=None):
-    registry = {}
-    def wrap(f):
-        if _id is None:
-            fname_p = f.__name__.split('_')
-            _id = fname_p[1]
-        registry[_id] = f
-        # def wrapped_f(*args):
-        #    return f(*args)
-        # return wrapped_f
-        return f
-    wrap.all = registry
-    return wrap
-'''
-
-
 class AddonType(object):
     all = {}
 
