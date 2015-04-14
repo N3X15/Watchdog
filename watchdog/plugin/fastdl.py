@@ -48,7 +48,7 @@ class FastDLPlugin(BasePlugin):
         if not os_utils.canCopy(src, dest + '.bz2'):
             return False
         shutil.copy2(src, dest)
-        level = str(self.config.get('fastdl.compression-level', 9))
+        level = str(self.config.get('compression-level', 9))
         level = max(min(level, 1), 9)
         # -f = force overwrite
         # -z = compress
@@ -58,6 +58,7 @@ class FastDLPlugin(BasePlugin):
         return True
     def updateFastDL_AU(self,addon_names=[]):
         return self.updateFastDL()
+    
     def updateFastDL(self):
         self.fastDLPaths = []
         gamepath = os.path.join(self.engine.gamedir, self.engine.game_content.game)
@@ -124,7 +125,7 @@ class FastDLPlugin(BasePlugin):
                 for f in forced_files:
                     processFile(f)
                 t.vars['nfiles']=self.nNew
-            # sys.exit(1)
+
             with os_utils.TimeExecution(DeferredLogEntry('Completed in {elapsed}s - Removed {nfiles} dead files')) as t:
                 for root, _, files in os.walk(destdir):
                     for f in files:
@@ -152,8 +153,10 @@ class FastDLPlugin(BasePlugin):
                             os.remove(realpath)
                             self.nRemoved += 1
                 t.vars['nfiles']=self.nRemoved
+                
             with os_utils.TimeExecution(DeferredLogEntry('Completed in {elapsed}s - Removed {ndirs} dead directories')) as t:
                 t.vars['ndirs']=del_empty_dirs(destdir)
+                
             # VDFFile({'checksums':new_hashes}).Save(fastDLCache)
             log.info('Scanned: %d, Added: %d, Removed: %d', self.nScanned, self.nNew, self.nRemoved)
 
