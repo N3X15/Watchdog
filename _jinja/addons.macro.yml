@@ -6,3 +6,11 @@
       remote: {{repo_url}}
       branch: {{branch}}
 {% endmacro -%}
+{%- macro hg_addon(name, type, repo_url, branch='default') %}
+  {{name}}:
+    type: {{type}}
+    repo:
+      type: hg
+      remote: {{repo_url}}
+      branch: {{branch}}
+{% endmacro -%}

@@ -52,21 +52,28 @@ git:
     
 # Monitoring configuration
 monitor:
-  # Process name to look for
+  # Process name to look for.
   image: srcds_linux
-  # IP to ping (PUBLIC IP!)
-  ip: 1.2.3.4
-  # Port to ping
+  # PUBLIC IP of your server.
+  ip: xxx.xxx.xxx.xxx
+  # Port the server listens on.
   port: 27015
-  # How long to wait before timing out a ping (in seconds)
-  timeout: 10.0
-  # Number of restart tries before watchdog gives up.
+  # Maximum number of failures before Watchdog shuts down.
   max-fails: 3
-  # Delay between warning and restart.
-  restart-wait: 30
+  #
   threads: false
-  # Number of pingServer attempts before failing the server.
-  ping-tries: 3
+  # Seconds to wait for a response to a PING.
+  timeout: 10.0
+  # Seconds between warning and restart. 
+  restart-wait: 30
+  # What actions to take if an addon is updated.
+  # Possible: DELAYED, IMMEDIATE
+  #  DELAYED: Wait until server exits to perform updates
+  #  IMMEDIATE: Issue a warning, then restart.
+  restart-types:
+    addon: delayed
+    content: delayed
+    config: immediate
   
 # Nudge Notification System configuration
 # (Not used at the moment)
@@ -82,7 +89,7 @@ nudge:
   
   
 paths:
-  # Where particular addons will end up going.
+  # Where particular addon types will end up going.
   addons:
     # Garry's Mod Lua addons (and GMAs)
     lua: {{ mod_dir }}/addons
@@ -118,7 +125,7 @@ daemon:
     
     gamemode: sandbox
     # ID of your workshop collection.
-    host_workshop_collection: 407516070
+    host_workshop_collection: 000000
     # Map to use.
     map: gm_flatgrass
     maxplayers: 32
