@@ -54,9 +54,9 @@ from buildtools.bt_logging import IndentLogger
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run, monitor, and auto-update your game daemon.')
-    parser.add_argument('--validate',type=bool,action='store_true',default=False,help="Validate games on startup.")
+    parser.add_argument('--validate', action='store_true', help="Validate games on startup.")
     args = parser.parse_args()
-    
+
     utils.script_dir = script_dir
 
     try:
@@ -123,7 +123,7 @@ if __name__ == '__main__':
         SteamContent.LoadDefs(os.path.join(script_dir, 'games.d/'))
 
         # engine = GModEngine(config)
-        engine = GetEngine(config,args)
+        engine = GetEngine(config, args)
 
         MAX_FAILURES = config.get('monitor.max-fails')
 
