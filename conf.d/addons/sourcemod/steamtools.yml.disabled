@@ -1,0 +1,5 @@
+addons:
+  steamtools:
+    addon: limetech_ext
+    file-prefix: steamtools
+    version_group: 0.9.1

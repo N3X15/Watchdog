@@ -40,8 +40,8 @@ env:
 git:
   # If you want to version-control your configuration, fill this out.
   config:
-    type: git # Only git is available, at the moment.
-    remote: git@git.nexisonline.net:N3X15/gmod_config.git
+    type: git # git or hg
+    remote: your@git:repo/uri
     branch: master # Branch you're using, assuming git or hg
     subdirs: # Specify subdirectories to copy over. source: destination
       # This one means {git repo}/cfg/ -> {game directory}[/mod directory]/cfg/
@@ -49,10 +49,6 @@ git:
       lua: lua
       data: data
       settings: settings
-  # Not used yet, but will allow you to have a seperate repo with patches to apply to the game/addons.
-  patches:
-    branch: master
-    remote: git@git.nexisonline.net:N3X15/gmod-patches.git
     
 # Monitoring configuration
 monitor:
@@ -63,13 +59,17 @@ monitor:
   # Port to ping
   port: 27015
   # How long to wait before timing out a ping (in seconds)
-  timeout: 30.0
+  timeout: 10.0
   # Number of restart tries before watchdog gives up.
   max-fails: 3
+  # Delay between warning and restart.
   restart-wait: 30
   threads: false
+  # Number of pingServer attempts before failing the server.
+  ping-tries: 3
   
 # Nudge Notification System configuration
+# (Not used at the moment)
 nudge:
   # ID tag for this server
   id: Test Server
@@ -109,14 +109,16 @@ daemon:
   engine: srcds
   launcher: srcds_linux
   srcds_args:
-    ip: 74.63.243.98
+    # PUBLIC IP of the server.
+    ip: 1.2.3.4
     #authkey: Steam API key goes here 
     autoupdate: ''
     game: garrysmod
   game_args:
+    
     gamemode: sandbox
+    # ID of your workshop collection.
     host_workshop_collection: 407516070
-    #map: gm_flatgrass_glandbeta5
-    #map: gm_flatgrass
-    map: sb_new_worlds_2
+    # Map to use.
+    map: gm_flatgrass
     maxplayers: 32

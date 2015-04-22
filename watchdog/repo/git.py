@@ -3,7 +3,7 @@ Created on Mar 13, 2015
 
 @author: Rob
 '''
-import os
+import os, sys
 from watchdog import utils
 from watchdog.repo.base import RepoDir, RepoType
 from buildtools.repo.git import GitRepository
@@ -21,7 +21,10 @@ class GitRepo(RepoDir):
         if 'subdirs' in self.config:
             self.rootdir = os.path.dirname(self.destination)
             self.destination = os.path.join(utils.getCacheDir(), 'repos', self.addon.id)
-        self.repo = GitRepository(self.destination, self.remote, noisy_clone=True)
+        self._initRepo()
+            
+    def _initRepo(self):
+        self.repo = GitRepository(self.destination, self.remote, noisy_clone=True,quiet=self.config.get('quiet',True))
         
     def validate(self):
         return super(GitRepo, self).validate()
@@ -31,7 +34,7 @@ class GitRepo(RepoDir):
             self.repo.GetRepoState()
             self.log.info('Addon {0} git repository on branch {1}, commit {2}.'.format(self.addon.id, self.repo.current_branch, self.repo.current_commit))
         else:
-            self.log.warn('Addon {0} has not been cloned yet.', self.addon.id)
+            self.log.warn('Addon %s has not been cloned yet.', self.addon.id)
     
     def isUp2Date(self):
         try:
@@ -53,7 +56,8 @@ class GitRepo(RepoDir):
                 if os.path.isdir(self.destination):
                     log.critical('UNABLE TO REMOVE %s!',self.destination)
                     sys.exit(-1)
-                
+                self._initRepo()
+            
             old_commit = self.repo.current_commit
             cloned = not os.path.isdir(self.destination)
             self.repo.Pull(branch=self.branch, cleanup=cleanup)

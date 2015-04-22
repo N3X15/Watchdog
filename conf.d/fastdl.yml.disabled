@@ -21,4 +21,6 @@ fastdl:
     - bsp
     - ain
     - tga
-  
+  # Directories to include in the resources.lua generated (GMod only)
+  lua-include:
+    - addons/spacebuild

@@ -4,8 +4,8 @@ import shutil
 import sys
 
 # This crap always triggers an import error in PEP8, ignore it.
-from valve.source.a2s import ServerQuerier #IGNORE:import-error
-from valve.source.rcon import RCON #IGNORE:import-error
+from valve.source.a2s import ServerQuerier  # IGNORE:import-error
+from valve.source.rcon import RCON  # IGNORE:import-error
 
 from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
 from watchdog.steam import srcupdatecheck
@@ -97,7 +97,7 @@ class SteamContent(object):
 class SourceEngine(WatchdogEngine):
     RESTART_ON_CHANGE = True
     FASTDL_PLUGIN_ID = 'fastdl'
-    
+
     def __init__(self, cfg):
         global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME  # IGNORE:global-statement Bite me.
 
@@ -129,10 +129,10 @@ class SourceEngine(WatchdogEngine):
         self.numPlayers = 0
 
         self.asyncProcess = None
-        
-        if self.config.get('fastdl',None) is not None:
+
+        if self.config.get('fastdl', None) is not None:
             self.load_plugin(self.FASTDL_PLUGIN_ID)
-        
+
         self.initialized.fire()
 
     def updateAlert(self, typeID=''):
@@ -183,11 +183,20 @@ class SourceEngine(WatchdogEngine):
         if self.process is None or not self.process.is_running():
             return False
 
+        maxtries = self.config.get('monitor.ping-tries', 3)
+        for trynum in range(maxtries):
+            if self._tryPing(trynum, maxtries, noisy):
+                return True
+            else:
+                noisy = True  # PANIC
+        return False
+
+    def _tryPing(self, trynum, maxtries, noisy):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
-        timeout = self.config.get('monitor.timeout', 30)
+        timeout = self.config.get('monitor.timeout', 10)
         try:
             if noisy:
-                log.info('Pinging %s:%d...', ip, port)
+                log.info('Pinging %s:%d (try %d/%d)...', ip, port, trynum+1, maxtries)
             with log:
                 server = ServerQuerier((ip, port), timeout=timeout)
                 # with TimeExecution('Ping'):
@@ -222,7 +231,7 @@ class SourceEngine(WatchdogEngine):
                 subject[k] = v
                 if message is not None:
                     log.info(message, key=k, value=v)
-                    
+
     # Less duplicated code.
     def _buildArgs(self, prefix, data):
         o = []

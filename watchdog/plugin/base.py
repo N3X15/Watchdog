@@ -31,3 +31,7 @@ class BasePlugin(object):
         
     def validate(self):
         return False
+        
+    def hookEvent(self,subject,hook,handler):
+        log.info('Hooking %s<%s>...',subject.__class__.__name__,hook)
+        getattr(subject,hook).subscribe(handler)
