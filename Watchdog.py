@@ -20,6 +20,7 @@ import urllib
 import platform
 import importlib
 import traceback
+import argparse
 
 # pip package => module list
 import_packages = {
@@ -52,6 +53,10 @@ from buildtools.wrapper import Git
 from buildtools.bt_logging import IndentLogger
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run, monitor, and auto-update your game daemon.')
+    parser.add_argument('--validate',type=bool,action='store_true',default=False,help="Validate games on startup.")
+    args = parser.parse_args()
+    
     utils.script_dir = script_dir
 
     try:
@@ -118,7 +123,7 @@ if __name__ == '__main__':
         SteamContent.LoadDefs(os.path.join(script_dir, 'games.d/'))
 
         # engine = GModEngine(config)
-        engine = GetEngine(config)
+        engine = GetEngine(config,args)
 
         MAX_FAILURES = config.get('monitor.max-fails')
 

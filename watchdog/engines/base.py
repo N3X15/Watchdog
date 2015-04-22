@@ -40,8 +40,9 @@ class WatchdogEngine(object):
     Version = 0000
     RestartOnChange=False
     
-    def __init__(self, cfg):
+    def __init__(self, cfg, args):
         self.config = cfg
+        self.cmdline_args = args
         
         self.process = None
         self.processName = cfg.get('monitor.image')

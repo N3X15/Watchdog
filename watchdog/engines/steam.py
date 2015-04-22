@@ -58,12 +58,14 @@ class SteamContent(object):
         self.aliases = []
         self.destination = ''
         self.steamInf = ''
+        self.validate = False
 
-    def Configure(self, cfg):
+    def Configure(self, cfg, args):
         if self.requires_login:
             if STEAMCMD_USERNAME is None or STEAMCMD_PASSWORD is None:
                 log.error('%s requires a username and password to access.', self.appName)
                 sys.exit(1)
+        self.validate = args.validate
         self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
         self.steamInf = None
         if self.game != '':
@@ -71,6 +73,8 @@ class SteamContent(object):
 
     def IsUpdated(self):
         'Returns false if outdated.'
+        if self.validate:
+            return False
         if not self.updatable:
             return os.path.isfile(self.steamInf)
         return not srcupdatecheck.CheckForUpdates(self.steamInf, quiet=True)
@@ -91,6 +95,8 @@ class SteamContent(object):
                 '+quit'
             ]
             cmd(shell_cmd, echo=False, critical=True)
+        if self.validate:
+            self.validate = False
 
 
 @EngineType('srcds')
@@ -98,10 +104,10 @@ class SourceEngine(WatchdogEngine):
     RESTART_ON_CHANGE = True
     FASTDL_PLUGIN_ID = 'fastdl'
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, args):
         global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME  # IGNORE:global-statement Bite me.
 
-        super(SourceEngine, self).__init__(cfg)
+        super(SourceEngine, self).__init__(cfg, args)
 
         STEAMCMD_USERNAME = cfg.get('auth.steam.username', None)
         STEAMCMD_PASSWORD = cfg.get('auth.steam.password', None)
@@ -117,7 +123,7 @@ class SourceEngine(WatchdogEngine):
             if app is None:
                 log.warn('Unable to find app "%s". Skipping.', appIdent)
                 continue
-            app.Configure(appCfg)
+            app.Configure(appCfg, self.cmdline_args)
             self.content[app.appID] = app
             if app.destination == self.gamedir:
                 self.game_content = app
@@ -196,7 +202,7 @@ class SourceEngine(WatchdogEngine):
         timeout = self.config.get('monitor.timeout', 10)
         try:
             if noisy:
-                log.info('Pinging %s:%d (try %d/%d)...', ip, port, trynum+1, maxtries)
+                log.info('Pinging %s:%d (try %d/%d)...', ip, port, trynum + 1, maxtries)
             with log:
                 server = ServerQuerier((ip, port), timeout=timeout)
                 # with TimeExecution('Ping'):
