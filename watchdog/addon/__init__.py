@@ -4,9 +4,10 @@ from .source.sourceaddon import SourceAddon
 from .source.sourcepawn import SourcePawnAddon
 
 
-def CreateAddon(engine, id, cfg):
+def CreateAddon(engine, id, cfg, removing=False):
     addonclass = cfg.get('addon', 'basic')
     addon = AddonType.all[addonclass](engine, id, cfg)
-    if not addon.validate():
+    addon.removing = removing
+    if not addon.validate() and not addon.removing:
         return None
     return addon

@@ -20,7 +20,6 @@ STEAMCMD_USERNAME = None
 STEAMCMD_PASSWORD = None
 STEAMCMD_STEAMGUARD = None
 
-
 class SteamContent(object):
     All = []
     Lookup = {}

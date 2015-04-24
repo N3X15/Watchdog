@@ -16,3 +16,4 @@ class SourceAddon(BaseBasicAddon):
         if 'dir' not in cfg:
             self.destination = os.path.dirname(self.destination)
             self.repo_dir = self.destination
+    

@@ -6,11 +6,14 @@ Created on Mar 13, 2015
 import os
 import logging
 import yaml
+import shutil
 
 from buildtools.bt_logging import log
 from buildtools import os_utils
 from watchdog.repo import CreateRepo
 from watchdog import utils
+from watchdog.utils import FileFinder
+import traceback
 
 
 class AddonType(object):
@@ -45,6 +48,8 @@ class Addon(object):
         self.installed_files = []
 
         self.dependencies = cfg.get('dependencies', []) + depends
+        
+        self.removing=False
 
     def saveFileCache(self):
         with open(self.file_cache, 'w') as f:
@@ -58,6 +63,7 @@ class Addon(object):
     def loadFileCache(self):
         try:
             if os.path.isfile(self.file_cache):
+                #log.info('Loading %s...',self.file_cache)
                 with open(self.file_cache, 'r') as f:
                     version, data = yaml.load_all(f)
                     if version == self.FILECACHE_VERSION:
@@ -87,25 +93,66 @@ class Addon(object):
         return False
 
     def remove(self):
-        for f in self.installed_files:
-            if os.path.isfile(f):
-                os.remove(f)
-                log.info('rm %s', f)
         return False
+    
+    def validateInstallation(self):
+        if len(self.installed_files) == 0:
+            self.loadFileCache()
+        for f in self.installed_files:
+            if not os.path.isfile(f):
+                log.error('Missing file: %s',f)
+                self.markBroken()
+                return
 
     def markBroken(self):
-        log.error('ADDON %s IS BROKEN!', self.id)
-        with open(os.path.join(self.cache_dir, 'BROKEN'), 'w') as f:
-            f.write('')
+        if not self.isBroken():
+            #traceback.print_stack()
+            log.error('ADDON %s IS BROKEN!', self.id)
+            self.engine.addons_dirty=True
+            with open(os.path.join(self.cache_dir, 'BROKEN'), 'w') as f:
+                f.write('')
 
     def unmarkBroken(self):
         brokefile = os.path.join(self.cache_dir, 'BROKEN')
         if os.path.isfile(brokefile):
             log.info('Addon %s is no longer broken.', self.id)
             os.remove(brokefile)
+            self.engine.addons_dirty=True
 
     def isBroken(self):
         return os.path.isfile(os.path.join(self.cache_dir, 'BROKEN'))
+    
+    def clearInstallLog(self):
+        self.installed_files=[]
+
+    def installFile(self, src, dest):
+        if not os.path.isdir(dest):
+            log.info('mkdir -p "%s"', dest)
+            os.makedirs(dest)
+        destfile = os.path.join(dest, os.path.basename(src))
+        if os_utils.canCopy(src, destfile):
+            log.info('cp "%s" "%s"', src, dest)
+            shutil.copy2(src, destfile)
+        self.registerFile(destfile)
+
+    def installFiles(self, src, dest):
+        if os.path.isfile(src):
+            self.installFile(src, dest)
+        elif os.path.isdir(src):
+            dirname = os.path.basename(src)
+            ff = FileFinder(src)
+            ff.import_config(self.config.get('install', {}))
+            for fi in ff.getFiles():
+                self.installFile(fi.fullpath, os.path.join(dest, dirname, os.path.dirname(fi.relpath)))
+                
+    def uninstallFiles(self):
+        with log.info('Uninstalling files...'):
+            for f in self.installed_files:
+                if os.path.isfile(f):
+                    self.installed_files.remove(f)
+                    os.remove(f)
+                    log.info('rm "%s"',f)
+            self.saveFileCache()
 
 
 class BaseBasicAddon(Addon):
@@ -137,6 +184,8 @@ class BaseBasicAddon(Addon):
         if 'repo' not in self.config:
             log.critical('Addon %r is missing its repository configuration!', self.clsType)
             return False
+        if self.isBroken():
+            log.warning('Addon %r is broken.',self.id)
         self.repo = CreateRepo(self, self.config['repo'], self.repo_dir)
         return True
 
@@ -150,6 +199,7 @@ class BaseBasicAddon(Addon):
         return self.repo.update()
 
     def remove(self):
+        self.uninstallFiles()
         return self.repo.remove()
 
 

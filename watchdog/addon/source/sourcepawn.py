@@ -69,29 +69,41 @@ class SourcePawnAddon(BaseBasicAddon):
         self.installed_files = []
         self.compilable_files = {}
 
-    def isUp2Date(self):
-        if not BaseBasicAddon.isUp2Date(self):
-            return False
+    def _isCompiled(self):
         for filename, destdir in self.compilable_files.items():
             _, filename = os.path.split(filename)
             naked_filename, _ = os.path.splitext(filename)
-            dest = os.path.join(destdir, naked_filename + '.smx')
+            dest = os.path.join(self.smx_dir, destdir, naked_filename + '.smx')
             if not os.path.isfile(dest):
                 log.warn('%s is missing!', dest)
                 return False
         return True
 
+    def isUp2Date(self):
+        if not BaseBasicAddon.isUp2Date(self):
+            return False
+        if not self._isCompiled():
+            self.markBroken()
+            return False
+        return True
+
     def validate(self):
         #log.info('VALIDATING %s',self.__class__.__name__)
+        #with log.info('Checking %s...', self.id):
         if not super(SourcePawnAddon, self).validate():
             return False
 
+        # Should not trigger a failed addon load.
+        self.validateInstallation()
+
         if not os.path.isdir(self.sm_dir):
             log.error('SourceMod is not installed at %s.', self.sm_dir)
+            self.engine.addons['sourcemod'].markBroken()
             return False
 
         if not os.path.isfile(self.spcomp):
             log.error('spcomp is missing from SourceMod.')
+            self.engine.addons['sourcemod'].markBroken()
             return False
 
         return True
@@ -99,6 +111,7 @@ class SourcePawnAddon(BaseBasicAddon):
     def loadFileCache(self):
         try:
             if os.path.isfile(self.file_cache):
+                log.info('Loading %s...', self.file_cache)
                 with open(self.file_cache, 'r') as f:
                     version, data = yaml.load_all(f)
                     if version == self.FILECACHE_VERSION:
@@ -124,6 +137,10 @@ class SourcePawnAddon(BaseBasicAddon):
     def registerCompilable(self, filename, destdir):
         if filename not in self.compilable_files:
             self.compilable_files[filename] = destdir
+
+    def clearInstallLog(self):
+        BaseBasicAddon.clearInstallLog(self)
+        self.compilable_files = {}
 
     def _handle_compiled(self, src, destdir):
         return self.copyfile(src, os.path.join(self.smx_dir, destdir))
@@ -171,7 +188,10 @@ class SourcePawnAddon(BaseBasicAddon):
 
     def update(self):
         strip_ndirs = self.config.get('strip-ndirs', 0)
+        if not self.isBroken() and not self._isCompiled():
+            self.markBroken()
         if super(SourcePawnAddon, self).update() or self.isBroken():
+            self.clearInstallLog()
             skip_dirs = ('scripting', 'languages', 'extensions', 'include')
             with log.info('Installing %s from %s...', self.id, self.repo_dir):
                 for root, _, files in os.walk(self.repo_dir):
@@ -186,7 +206,7 @@ class SourcePawnAddon(BaseBasicAddon):
 
                         relpathparts = relpath.split(os.sep)
 
-                        print(relpathparts)
+                        # print(relpathparts)
                         if strip_ndirs > 0:
                             relpathparts = relpathparts[strip_ndirs:]
                         if relpathparts[0] in skip_dirs:

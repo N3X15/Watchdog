@@ -60,13 +60,8 @@ class WatchdogEngine(object):
             BasicAddon.ClassDestinations[classID] = classDest
 
         self.addons = {}
-        for aid, acfg in self.config['addons'].items():
-            addon = CreateAddon(self, aid, acfg)
-            if addon and addon.validate():
-                self.addons[aid] = addon
-            else:
-                log.error('Addon %s failed to load.',aid)
-        self.sort_addon_dependencies()
+        self.addons_dirty=False
+        self.loadAddons()
 
         self.configrepo = None
         self.restartQueued = False
@@ -95,6 +90,17 @@ class WatchdogEngine(object):
             self.plugins[plID] = plugin
         else:
             log.error('Plugin %s failed to load.',plID)
+            
+    def loadAddons(self):
+        self.addons = {}
+        for aid, acfg in self.config['addons'].items():
+            addon = CreateAddon(self, aid, acfg)
+            if addon and addon.validate():
+                self.addons[aid] = addon
+            else:
+                log.error('Addon %s failed to load.',aid)
+        self.sort_addon_dependencies()
+        self.addons_dirty=False
 
     def sort_addon_dependencies(self):
         new_addons = OrderedDict()
@@ -241,18 +247,21 @@ class WatchdogEngine(object):
                     log.info('%s has changed! Triggering restart.', aid)
                     changed = True
                     updated_addons.append(aid)
-                if aid not in loadedAddons:
+                elif aid not in loadedAddons:
                     log.info('%s is new! Triggering restart.', aid)
                     changed = True
                 newAddons[aid] = addon.config
             for aid, addonCfg in loadedAddons.items():
                 if aid not in newAddons:
                     with log.info('Removing dead addon %r...', aid):
-                        addon = CreateAddon(self, aid, addonCfg)
+                        addon = CreateAddon(self, aid, addonCfg,removing=True)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:
                 yaml.dump(newAddons, f, default_flow_style=False)
+        if self.addons_dirty:
+            with log.info('Reloading addons...'):
+                self.loadAddons()
         self.addons_updated.fire(addon_names=updated_addons)
         return changed
 

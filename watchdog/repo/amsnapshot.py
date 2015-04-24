@@ -1,4 +1,4 @@
-from watchdog.repo.base import RepoType, RepoDir
+from watchdog.repo.base import RepoType, Repo
 import os
 import sys
 import yaml
@@ -19,7 +19,7 @@ class AMOperatingSystem:  # IGNORE:no-init (it's an enum, chucklefuck)
 timing.SetupYaml()
 
 @RepoType('amsnapshot')
-class AlliedModdersSnapshot(RepoDir):
+class AlliedModdersSnapshot(Repo):
     '''Base for source engine mods released by Allied Modders (SourceMod, etc)'''
     
     CHECK_DELAY = 60 * 5  # 5 minutes
@@ -55,7 +55,7 @@ class AlliedModdersSnapshot(RepoDir):
         self.preload()
 
     def validate(self):
-        return RepoDir.validate(self)
+        return True
 
     def preload(self):
         self.avail_versions = {
@@ -168,15 +168,15 @@ class AlliedModdersSnapshot(RepoDir):
                 os.remove(filename)
 
                 rsync_flags = []
-                
-                for xdir in self.config.get('exclude', []):
-                    rsync_flags.append('--exclude=' + xdir)
-                rsync_flags += os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*']))
-                    
-                cmd(['rsync', '-zrav'] + rsync_flags + [self.destination], echo=True, critical=True)
 
+                for src in os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*'])):
+                    fullpath = os.path.join(os.getcwd(),src)
+                    self.addon.installFiles(fullpath,self.destination)
+                self.addon.saveFileCache()
+                
                 self.SaveCache()
                 success = True
+                self.addon.unmarkBroken()
             cmd(['rm', '-rf', dirname])
         return success
 
@@ -186,10 +186,13 @@ class AlliedModdersSnapshot(RepoDir):
             latestBuild, latestURL = self._updateCheck()
             log.info('Latest %s version: build %r', self.addon.id, latestBuild)
             log.info('Current %s version: build %r', self.addon.id, self.current_version)
-            if self.current_version != latestBuild:
+            if self.current_version != latestBuild or self.addon.isBroken():
                 self.update_url = latestURL
                 self.ForceUpdate()
                 self.current_version = latestBuild
                 self.SaveCache()
                 return True
         return False
+
+    def remove(self):
+        return Repo.remove(self)

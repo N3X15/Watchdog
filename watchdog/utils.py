@@ -64,7 +64,15 @@ class LoggedProcess(AsyncCommand):
         self.log = logToFile(logID, sub_dir=logSubDir, formatter=logging.Formatter(fmt='%(asctime)s [%(levelname)-8s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'), announce_location=True, mode='a')
 
 
+class FileInfo(object):
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+
 class FileFinder(object):
+
     '''
     Find relatively-pathed files, given a set of filters.
     '''
@@ -75,6 +83,11 @@ class FileFinder(object):
         self.exclude_dirs = []
         self.include_ext = []
         self.include_long_exts = []
+
+    def import_config(self, cfg):
+        self.skipped_dirs = cfg.get('skipped-dirs', [])
+        self.exclude_dirs = cfg.get('exclude-dirs', [])
+        self.include_ext = cfg.get('include-ext', [])
 
     def getFiles(self):
         for root, _, files in os.walk(self.path):
@@ -97,10 +110,10 @@ class FileFinder(object):
                         ignore = True
                 if ignore:
                     continue
-                if len(self.include_ext) > 0 or len(self.include_long_exts)>0:
+                if len(self.include_ext) > 0 or len(self.include_long_exts) > 0:
                     if ext not in self.include_ext and long_ext not in self.include_long_exts:
                         #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
                         continue
                 relpath = '/'.join(relpathparts)
 
-                yield dict(fullpath=fullpath, relpath=relpath, ext=ext, long_ext=long_ext)
+                yield FileInfo(fullpath=fullpath, relpath=relpath, ext=ext, long_ext=long_ext)
