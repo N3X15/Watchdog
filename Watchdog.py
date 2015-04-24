@@ -4,19 +4,11 @@ Copyright (c)2015 Rob "N3X15" Nelson <nexisentertainment@gmail.com>
 MIT License Goes Here
 '''
 
-import cPickle
-import json
 import logging
 import logging.handlers
 import os
-import re
-import shutil
-import socket
-import struct
-import subprocess
 import sys
 import time
-import urllib
 import platform
 import importlib
 import traceback
