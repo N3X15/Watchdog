@@ -231,6 +231,12 @@ class SourceEngine(WatchdogEngine):
             while not content.IsUpdated() and attempts < 3:
                 content.Update()
                 attempts += 1
+        # Needed to fix a stupid steam bug that prevents the server from starting.
+        appid_file = os.path.join(self.gamedir,'steam_appid.txt')
+        if not os.path.isfile(appid_file):
+            with open(appid_file,'w') as f:
+                f.write(str(self.game_content.appID))
+                log.info('Wrote steam_appid.txt')
 
     def _applyDefaultsTo(self, defaults, subject, message=None):
         for k, v in defaults.items():
