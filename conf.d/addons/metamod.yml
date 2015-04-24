@@ -1,8 +1,0 @@
-addons:
-  metamod:
-    addon: source-addon
-    repo:
-      type:          amsnapshot
-      drop-format:   'http://www.metamodsource.net/mmsdrop/{VERSION}/'
-      drop-regex:    'mmsource-(?P<version>[0-9\.]+)-git(?P<build>[0-9]+)-(?P<os>windows|linux|mac)\.[a-z\.]+'
-      version-group: '1.10'
