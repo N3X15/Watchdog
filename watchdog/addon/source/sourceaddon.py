@@ -1,7 +1,6 @@
 
 import os
-from watchdog.addon.base import BaseBasicAddon, BasicAddon, AddonType
-from watchdog.repo import CreateRepo
+from watchdog.addon.base import BaseBasicAddon, AddonType
 
 
 @AddonType('source-addon')
@@ -12,8 +11,8 @@ class SourceAddon(BaseBasicAddon):
     '''
 
     def __init__(self, engine, aid, cfg):
-        cfg['type']='source-addon'
+        cfg['type'] = 'source-addon'
         super(SourceAddon, self).__init__(engine, aid, cfg)
         if 'dir' not in cfg:
-            self.destination=os.path.dirname(self.destination)
+            self.destination = os.path.dirname(self.destination)
             self.repo_dir = self.destination

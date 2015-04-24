@@ -12,6 +12,7 @@ from buildtools import os_utils
 from watchdog.repo import CreateRepo
 from watchdog import utils
 
+
 class AddonType(object):
     all = {}
 
@@ -29,21 +30,22 @@ class AddonType(object):
 
 class Addon(object):
     FILECACHE_VERSION = 1
-    def __init__(self, engine, aid, cfg,depends=[]):
+
+    def __init__(self, engine, aid, cfg, depends=[]):
         self.engine = engine
         self.id = aid
         self.config = cfg
         self.repo_config = self.config.get('repo', {})
         self.log = logging.getLogger('addon.' + aid)
-        
-        self.cache_dir = os.path.join(utils.getCacheDir(),'addons',aid)
+
+        self.cache_dir = os.path.join(utils.getCacheDir(), 'addons', aid)
         os_utils.ensureDirExists(self.cache_dir)
 
         self.file_cache = os.path.join(self.cache_dir, 'files.yml')
         self.installed_files = []
-        
-        self.dependencies=cfg.get('dependencies',[])+depends
-        
+
+        self.dependencies = cfg.get('dependencies', []) + depends
+
     def saveFileCache(self):
         with open(self.file_cache, 'w') as f:
             yaml.dump_all([
@@ -52,7 +54,7 @@ class Addon(object):
                     'installed': self.installed_files,
                 }
             ], f, default_flow_style=False)
-    
+
     def loadFileCache(self):
         try:
             if os.path.isfile(self.file_cache):
@@ -90,20 +92,20 @@ class Addon(object):
                 os.remove(f)
                 log.info('rm %s', f)
         return False
-    
+
     def markBroken(self):
-        log.error('ADDON %s IS BROKEN!',self.id)
-        with open(os.path.join(self.cache_dir,'BROKEN'),'w') as f:
+        log.error('ADDON %s IS BROKEN!', self.id)
+        with open(os.path.join(self.cache_dir, 'BROKEN'), 'w') as f:
             f.write('')
-    
+
     def unmarkBroken(self):
-        brokefile=os.path.join(self.cache_dir,'BROKEN')
+        brokefile = os.path.join(self.cache_dir, 'BROKEN')
         if os.path.isfile(brokefile):
-            log.info('Addon %s is no longer broken.',self.id)
+            log.info('Addon %s is no longer broken.', self.id)
             os.remove(brokefile)
-            
+
     def isBroken(self):
-        return os.path.isfile(os.path.join(self.cache_dir,'BROKEN'))
+        return os.path.isfile(os.path.join(self.cache_dir, 'BROKEN'))
 
 
 class BaseBasicAddon(Addon):
@@ -126,8 +128,6 @@ class BaseBasicAddon(Addon):
         else:
             self.destination = cfg['dir']
         self.repo_dir = self.destination
-        if 'repo' not in cfg:
-            log.critical('Addon %r is missing its repository configuration!')
         self.repo = None
 
     def validate(self):

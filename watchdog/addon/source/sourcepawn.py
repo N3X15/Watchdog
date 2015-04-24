@@ -11,9 +11,11 @@ from buildtools import os_utils
 from buildtools.bt_logging import log
 from buildtools.os_utils import Chdir, cmd
 
+
 @AddonType('sourcepawn')
 class SourcePawnAddon(BaseBasicAddon):
     FILECACHE_VERSION = 4
+
     def __init__(self, engine, _id, cfg):
         cfg['type'] = 'source-addon'
         super(SourcePawnAddon, self).__init__(engine, _id, cfg, depends=['sourcemod'])
@@ -29,34 +31,34 @@ class SourcePawnAddon(BaseBasicAddon):
         self.extensions_dir = os.path.join(self.sm_dir, 'extensions')
 
         self.spcomp = os.path.join(self.scripts_dir, 'spcomp')
-        
-        self.copyable_exts=[]
-        self.copyable_long_exts=[]
-        self.extension_mappings={}
-                
-        actions={
-            'script':self._handle_script, 
-            'compiled':self._handle_compiled, 
-            'include':self._handle_include,
-            'language':self._handle_language,
-            'extension':self._handle_extension
+
+        self.copyable_exts = []
+        self.copyable_long_exts = []
+        self.extension_mappings = {}
+
+        actions = {
+            'script': self._handle_script,
+            'compiled': self._handle_compiled,
+            'include': self._handle_include,
+            'language': self._handle_language,
+            'extension': self._handle_extension
         }
-        default_exts={
-            'script':['sp'], 
-            'compiled':['smx'], 
-            'include':['inc'],
-            'language':['phrases.txt'],
-            'extension':['so','dll'],
+        default_exts = {
+            'script': ['sp'],
+            'compiled': ['smx'],
+            'include': ['inc'],
+            'language': ['phrases.txt'],
+            'extension': ['so', 'dll'],
         }
-        for actionID,exts in self.config.get('exts',default_exts).items():
+        for actionID, exts in self.config.get('exts', default_exts).items():
             for ext in exts:
                 if ext.startswith('.'):
-                    ext=ext[1:]
+                    ext = ext[1:]
                 if '.' in ext:
                     self.copyable_long_exts.append(ext)
                 else:
                     self.copyable_exts.append(ext)
-                self.extension_mappings[ext]=actions[actionID]
+                self.extension_mappings[ext] = actions[actionID]
                 #log.info('MAPPED %s -> %s',ext,actions[actionID].__name__)
 
         # config
@@ -66,15 +68,16 @@ class SourcePawnAddon(BaseBasicAddon):
 
         self.installed_files = []
         self.compilable_files = {}
-        
+
     def isUp2Date(self):
-        if not BaseBasicAddon.isUp2Date(self): return False
-        for filename,destdir in self.compilable_files.items():
+        if not BaseBasicAddon.isUp2Date(self):
+            return False
+        for filename, destdir in self.compilable_files.items():
             _, filename = os.path.split(filename)
             naked_filename, _ = os.path.splitext(filename)
             dest = os.path.join(destdir, naked_filename + '.smx')
             if not os.path.isfile(dest):
-                log.warn('%s is missing!',dest)
+                log.warn('%s is missing!', dest)
                 return False
         return True
 
@@ -90,9 +93,9 @@ class SourcePawnAddon(BaseBasicAddon):
         if not os.path.isfile(self.spcomp):
             log.error('spcomp is missing from SourceMod.')
             return False
-        
+
         return True
-    
+
     def loadFileCache(self):
         try:
             if os.path.isfile(self.file_cache):
@@ -167,9 +170,9 @@ class SourcePawnAddon(BaseBasicAddon):
         return True
 
     def update(self):
-        strip_ndirs = self.config.get('strip-ndirs',0)
+        strip_ndirs = self.config.get('strip-ndirs', 0)
         if super(SourcePawnAddon, self).update() or self.isBroken():
-            skip_dirs = ('scripting', 'languages','extensions','include')
+            skip_dirs = ('scripting', 'languages', 'extensions', 'include')
             with log.info('Installing %s from %s...', self.id, self.repo_dir):
                 for root, _, files in os.walk(self.repo_dir):
                     # with log.info('Looking in %s...',root):
@@ -180,15 +183,15 @@ class SourcePawnAddon(BaseBasicAddon):
                         long_ext = '.'.join(f.split('.')[1:])
 
                         relpath = os.path.relpath(fullpath, self.repo_dir)
-                        
+
                         relpathparts = relpath.split(os.sep)
-                        
+
                         print(relpathparts)
                         if strip_ndirs > 0:
                             relpathparts = relpathparts[strip_ndirs:]
                         if relpathparts[0] in skip_dirs:
                             relpathparts = relpathparts[2:]
-                            
+
                         ignore = False
                         for relpathpart in relpathparts:
                             if relpathpart in self.exclude_dirs:
