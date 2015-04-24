@@ -1,0 +1,11 @@
+{% from script_dir + '/_jinja/addons.macro.yml' import hg_addon %}
+addons:
+   smac:
+     addon: sourcepawn
+     dependencies:
+       - socket
+     repo:
+       branch: default
+       remote: https://bitbucket.org/anticheat/smac
+       type: hg
+       # For debugging. quiet: false

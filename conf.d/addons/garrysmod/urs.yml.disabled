@@ -1,3 +1,4 @@
 {% from script_dir + '/_jinja/addons.macro.yml' import git_addon %}
 addons:
-  {{ git_addon('urs', 'lua', 'https://github.com/Aaron113/URS.git') }}
+  {{ git_addon('urs',     'lua', 'https://github.com/Aaron113/URS.git', branch='dev') }}
+  {{ git_addon('urs_awl', 'lua', 'git@git.nexisonline.net:N3X15/gm_urs_autowhitelist.git') }}

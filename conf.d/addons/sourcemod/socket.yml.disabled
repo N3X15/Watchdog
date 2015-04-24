@@ -1,0 +1,10 @@
+addons:
+  socket:
+    addon: source-addon
+    dependencies:
+      - sourcemod
+    repo:
+      type:          amsnapshot
+      drop-format:   'http://dedi.nexisonline.net/drop/'
+      drop-regex:    'socket-git(?P<build>[0-9]+)-(?P<os>linux)\.[a-z\.]+'
+      version-group: ''

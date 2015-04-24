@@ -39,19 +39,22 @@ def del_empty_dirs(src_dir):
                 totalDel += 1
     return totalDel
 
+
 class Event(object):
+
     def __init__(self):
-        self.callbacks=[]
-        
+        self.callbacks = []
+
     def subscribe(self, callback):
         self.callbacks.append(callback)
-        
+
     def unsubscribe(self, callback):
         self.callbacks.remove(callback)
-        
-    def fire(self,**kwargs):
+
+    def fire(self, **kwargs):
         for cb in self.callbacks:
             cb(**kwargs)
+
 
 class LoggedProcess(AsyncCommand):
 
@@ -59,3 +62,45 @@ class LoggedProcess(AsyncCommand):
         AsyncCommand.__init__(self, command, stdout=stdout, stderr=stderr, echo=echo, env=env, refName=logID, PTY=PTY, debug=debug)
 
         self.log = logToFile(logID, sub_dir=logSubDir, formatter=logging.Formatter(fmt='%(asctime)s [%(levelname)-8s]: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'), announce_location=True, mode='a')
+
+
+class FileFinder(object):
+    '''
+    Find relatively-pathed files, given a set of filters.
+    '''
+
+    def __init__(self, path):
+        self.path = path
+        self.skipped_dirs = []
+        self.exclude_dirs = []
+        self.include_ext = []
+        self.include_long_exts = []
+
+    def getFiles(self):
+        for root, _, files in os.walk(self.path):
+            for f in files:
+                fullpath = os.path.join(root, f)
+                _, ext = os.path.splitext(f)
+
+                ext = ext.strip('.')
+                long_ext = '.'.join(f.split('.')[1:])
+
+                relpath = os.path.relpath(fullpath, self.path)
+
+                relpathparts = relpath.split(os.sep)
+                if relpathparts[0] in self.skipped_dirs:
+                    relpathparts = relpathparts[2:]
+
+                ignore = False
+                for relpathpart in relpathparts:
+                    if relpathpart in self.exclude_dirs:
+                        ignore = True
+                if ignore:
+                    continue
+                if len(self.include_ext) > 0 or len(self.include_long_exts)>0:
+                    if ext not in self.include_ext and long_ext not in self.include_long_exts:
+                        #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
+                        continue
+                relpath = '/'.join(relpathparts)
+
+                yield dict(fullpath=fullpath, relpath=relpath, ext=ext, long_ext=long_ext)

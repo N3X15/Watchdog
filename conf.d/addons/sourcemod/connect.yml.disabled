@@ -1,6 +1,6 @@
 {% from script_dir + '/_jinja/limetech.macro.yml' import limetech_repo %}
 addons:
-  steamtools:
+  connect:
     addon: sourcepawn
     strip-ndirs: 1
-    repo: {{ limetech_repo('steamtools','0.9.1')}}
+    repo: {{ limetech_repo('connect','0.9.1')}}

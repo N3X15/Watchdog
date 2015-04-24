@@ -13,18 +13,23 @@ import traceback
 @RepoType('git')
 class GitRepo(RepoDir):
     '''Addon stored in a git repository.'''
-
+    
+    #: Control directory.
+    EXCLUDE_DIRS=['.git']
     def __init__(self, addon, cfg, dest):
         super(GitRepo, self).__init__(addon, cfg, dest)
         self.remote = self.config['remote']
         self.branch = self.config.get('branch', 'master')
         if 'subdirs' in self.config:
             self.rootdir = os.path.dirname(self.destination)
-            self.destination = os.path.join(utils.getCacheDir(), 'repos', self.addon.id)
+            self.destination = os.path.join(utils.getCacheDir(), 'repos', self.addon.id,'gitrepo')
         self._initRepo()
             
     def _initRepo(self):
         self.repo = GitRepository(self.destination, self.remote, noisy_clone=True,quiet=self.config.get('quiet',True))
+        
+    def getRepoLocation(self):
+        return self.destination
         
     def validate(self):
         return super(GitRepo, self).validate()
@@ -61,7 +66,6 @@ class GitRepo(RepoDir):
             old_commit = self.repo.current_commit
             cloned = not os.path.isdir(self.destination)
             self.repo.Pull(branch=self.branch, cleanup=cleanup)
-            # assert self.repo.current_commit == self.repo.remote_commit
             if cloned or old_commit != self.repo.remote_commit:
                 if 'subdirs' in self.config:
                     with log.info('New commit detected (%s vs. %s), updating filesystem...',old_commit,self.repo.current_commit):

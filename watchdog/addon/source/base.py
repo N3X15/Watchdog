@@ -4,9 +4,10 @@ Created on Mar 18, 2015
 @author: Rob
 '''
 import os
-from watchdog.addon.base import Addon, BasicAddon
+from watchdog.addon.base import Addon, BasicAddon, AddonType
 from watchdog.repo import CreateRepo
 
+@AddonType('source')
 class SourceEngineAddon(Addon):
     '''
     Source Engine Addon (MM:S etc)

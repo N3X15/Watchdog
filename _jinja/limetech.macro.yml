@@ -1,0 +1,9 @@
+{%- macro limetech_repo(id, version_group) -%}
+  {% load_yaml as repo %}
+  type: amsnapshot
+  version-group: '{{ version_group }}'
+  drop-regex: '{{ id }}-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)'
+  drop-format: 'https://builds.limetech.org/files/'
+  {% endload %}
+  {{- repo|yaml -}}
+{%- endmacro -%}

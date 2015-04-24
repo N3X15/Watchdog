@@ -114,6 +114,7 @@ class SourceEngine(WatchdogEngine):
         STEAMCMD_STEAMGUARD = cfg.get('auth.steam.steamguard', None)
 
         STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
+        
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
 
         self.content = {}

@@ -1,43 +1,31 @@
-'''
-Created on Mar 12, 2015
-
-@author: Rob
-'''
+from watchdog.repo.base import RepoType, RepoDir
 import os
 import sys
 import yaml
-
-from watchdog.addon.source.base import SourceEngineAddon
-from watchdog.addon.base import BasicAddon
+import re
 
 from buildtools import http, os_utils, timing
 from buildtools.bt_logging import log
+import tempfile
+from buildtools.os_utils import cmd, Chdir
+from urlparse import urlparse
 
 
-class AMOperatingSystem: #IGNORE:no-init (it's an enum, chucklefuck)
+class AMOperatingSystem:  # IGNORE:no-init (it's an enum, chucklefuck)
     WINDOWS = 'windows'
     LINUX = 'linux'
     MAC = 'mac'
 
 timing.SetupYaml()
 
-# @AddonType('sourcemod')
-
-
-class AlliedModdersBase(SourceEngineAddon):
-
+@RepoType('amsnapshot')
+class AlliedModdersSnapshot(RepoDir):
     '''Base for source engine mods released by Allied Modders (SourceMod, etc)'''
-    MODID = 'base'  # Unique ID of the mod.  Used for caches. CHECK getID(), NOT THIS.
+    
     CHECK_DELAY = 60 * 5  # 5 minutes
-    DROP_FORMAT = ''  # 'http://www.sourcemod.net/smdrop/{VERSION}/'
 
-    def getID(self):
-        return self.MODID
-
-    def __init__(self, engine, _id, cfg):
-        super(AlliedModdersBase, self).__init__(engine, _id, cfg)
-
-        self.DROP_FILE_EXPRESSION = None
+    def __init__(self, addon, cfg, dest):
+        super(AlliedModdersSnapshot, self).__init__(addon, cfg, dest)
 
         self.os = ''
         if sys.platform == 'win32':
@@ -49,14 +37,15 @@ class AlliedModdersBase(SourceEngineAddon):
 
         # self.gamedir = os.path.expanduser(engine.config.get('paths.addons.source-addons'))
 
-        self.versiongroup = cfg['version_group']
+        self.versiongroup = cfg['version-group']
+        self.drop_regex = re.compile(cfg['drop-regex'])
+        self.drop_format = cfg['drop-format']
+        self.copydirs = cfg.get('drop-format',['addons/'])
 
-        self.cache_dir = os.path.join(self.engine.cache_dir, self.getID())  # os.path.join(self.engine.gamedir, 'cache', self.getID())
-        self.cache_data = os.path.join(self.cache_dir, 'AlliedModdersBase.yml')
+        self.cache_data = os.path.join(self.cache_dir, self.__class__.__name__ + '.yml')
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
 
-        self.updateCheckDelay = timing.SimpleDelayer(self.getID() + '.update', min_delay=self.CHECK_DELAY)
-        self.destination = BasicAddon.ClassDestinations['source-addon']
+        self.updateCheckDelay = timing.SimpleDelayer(self.addon.id + '.update', min_delay=self.CHECK_DELAY)
         self.avail_versions = {}
 
         self.current_version = None
@@ -66,7 +55,7 @@ class AlliedModdersBase(SourceEngineAddon):
         self.preload()
 
     def validate(self):
-        return True
+        return RepoDir.validate(self)
 
     def preload(self):
         self.avail_versions = {
@@ -91,16 +80,16 @@ class AlliedModdersBase(SourceEngineAddon):
                 self.updateCheckDelay.minDelay = self.CHECK_DELAY
             if 'destination' in cache:
                 self.current_destination = cache['destination']
-                
-        if self.current_destination!=self.destination:
-            self.current_version=-1
+
+        if self.current_destination != self.destination:
+            self.current_version = -1
             log.warn('Destination changed, forcing re-install.')
 
     def SaveCache(self):
         cache = {
-            'build':       self.current_version,
-            'url':         self.update_url,
-            'delay':       self.updateCheckDelay,
+            'build': self.current_version,
+            'url': self.update_url,
+            'delay': self.updateCheckDelay,
             'destination': self.destination
         }
         with open(self.cache_data, 'w') as f:
@@ -115,15 +104,15 @@ class AlliedModdersBase(SourceEngineAddon):
         return self.current_version == latestBuild
 
     def _updateCheck(self):
-        self.base_uri = self.DROP_FORMAT.format(VERSION=self.versiongroup)
-        with log.info('Checking %s...', self.base_uri):
+        self.base_uri = self.drop_format.format(VERSION=self.versiongroup)
+        with log.debug('Checking %s...', self.base_uri):
             req = http.HTTPFetcher(self.base_uri)
             # req.debug=True
             req.accept = ['*/*']
             req.useragent = 'Wget/1.16 (linux-gnu)'  # Fuck you, AM.
             req.referer = self.base_uri
             txt = req.GetString()
-            for match in self.DROP_FILE_EXPRESSION.finditer(txt):
+            for match in self.drop_regex.finditer(txt):
                 version = int(match.group('build'))
                 url = self.base_uri + match.group(0)
                 osID = match.group('os')
@@ -131,7 +120,7 @@ class AlliedModdersBase(SourceEngineAddon):
                     self.avail_versions[osID].append((version, url))
                     #log.info('%s []= %s (%s)',osID,version,url)
             if len(self.avail_versions) == 0:
-                with log.error('UNABLE TO FIND MATCHES FOR %s AT %s', self.DROP_FILE_EXPRESSION, self.base_uri):
+                with log.error('UNABLE TO FIND MATCHES FOR %s AT %s', self.drop_format, self.base_uri):
                     dbgFilename = os.path.join(self.cache_dir, 'recv.htm')
                     with open(dbgFilename, 'w') as f:
                         f.write(txt)
@@ -156,15 +145,51 @@ class AlliedModdersBase(SourceEngineAddon):
         return latestAnyBuild, latestAnyURL
 
     def ForceUpdate(self):
-        return
+        success = False
+        with log.info('Updating addon %s from AlliedModders...', self.addon.id):
+            dirname = tempfile.mkdtemp(prefix='amsnap')
+            with Chdir(dirname):
+                os_utils.ensureDirExists(self.destination)
+                _, _, path, _, _, _ = urlparse(self.update_url)
+                filename = path.split('/')[-1]
+                cmd(['wget', '-O', filename, self.update_url], echo=True, critical=True)
+                if filename.endswith('.tar.gz'):
+                    cmd(['tar', 'xzf', filename], echo=True, critical=True)
+                elif filename.endswith('.tar.bz'):
+                    cmd(['tar', 'xjf', filename], echo=True, critical=True)
+                elif filename.endswith('.tar.xz'):
+                    cmd(['tar', 'xJf', filename], echo=True, critical=True)
+                elif filename.endswith('.tar.7z'):
+                    cmd(['7za', 'x', filename], echo=True, critical=True)
+                    cmd(['tar', 'xf', filename[:-3]], echo=True, critical=True)
+                    os.remove(filename[:-3])
+                elif filename.endswith('.zip'):
+                    cmd(['unzip', filename], echo=True, critical=True)
+                os.remove(filename)
+
+                rsync_flags = []
+                
+                for xdir in self.config.get('exclude', []):
+                    rsync_flags.append('--exclude=' + xdir)
+                rsync_flags += os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*']))
+                    
+                cmd(['rsync', '-zrav'] + rsync_flags + [self.destination], echo=True, critical=True)
+
+                self.SaveCache()
+                success = True
+            cmd(['rm', '-rf', dirname])
+        return success
 
     def update(self):
-        with log.info('Searching for %s updates (%s):', self.getID(), self.versiongroup):
+        #super(AlliedModdersSnapshot, self).update()
+        with log.info('Searching for %s updates (%s):', self.addon.id, self.versiongroup):
             latestBuild, latestURL = self._updateCheck()
-            log.info('Latest %s version: build %r', self.getID(), latestBuild)
-            log.info('Current %s version: build %r', self.getID(), self.current_version)
+            log.info('Latest %s version: build %r', self.addon.id, latestBuild)
+            log.info('Current %s version: build %r', self.addon.id, self.current_version)
             if self.current_version != latestBuild:
                 self.update_url = latestURL
                 self.ForceUpdate()
                 self.current_version = latestBuild
                 self.SaveCache()
+                return True
+        return False

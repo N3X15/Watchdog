@@ -1,6 +1,7 @@
 addons:
   acf:
     type: lua
+    fastdl: true
     repo:
       type: git
       remote: https://github.com/nrlulz/ACF.git

@@ -1,6 +1,7 @@
 addons:
   spacebuild:
     type: lua
+    fastdl: true
     repo:
       type: git
       # Dead
@@ -10,6 +11,7 @@ addons:
       branch: sb3-dev
   sbep:
     type: lua
+    fastdl: true
     repo:
       type: git
       remote: https://github.com/SnakeSVx/sbep.git
