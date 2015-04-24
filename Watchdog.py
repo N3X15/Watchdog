@@ -35,13 +35,14 @@ sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
 sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
 # print(repr(sys.path))
 
+import yaml
+
 from watchdog import utils
-from watchdog.engines import SourceEngine, GModEngine, GetEngine
+from watchdog.engines import SourceEngine, GetEngine
 from watchdog.engines.steam import SteamContent
 
-from buildtools import *
-from buildtools import os_utils
-from buildtools.wrapper import Git
+from buildtools import os_utils, ENV
+from buildtools.config import Config
 from buildtools.bt_logging import IndentLogger
 
 if __name__ == '__main__':
@@ -50,9 +51,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     utils.script_dir = script_dir
+    utils.config_dir = os.path.abspath(os.getcwd())
 
     try:
-        cfgPath = os.path.join(os.getcwd(), 'watchdog.yml')
+        cfgPath = os.path.join(utils.config_dir, 'watchdog.yml')
         if not os.path.isfile(cfgPath):
             print('ERROR: %s does not exist.  Please copy the desired configuration template from conf.templates, rename it to watchdog.yml, and edit it to taste.  Watchdog cannot start until this is done.', cfgPath)
             sys.exit(-1)
@@ -64,6 +66,9 @@ if __name__ == '__main__':
         config = Config(cfgPath, {}, template_dir='/', variables=jinja_vars)
         config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'), variables=jinja_vars)
         config.set('paths.script', script_dir)
+        
+        with open(os.path.join(utils.getCacheDir(),'configuration.yml'),'w') as f:
+            yaml.dump(config.cfg,f)
 
         #########################
         # Set up logging.

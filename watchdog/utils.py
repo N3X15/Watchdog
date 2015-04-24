@@ -5,10 +5,10 @@ from buildtools.bt_logging import log, logToFile
 from buildtools.os_utils import AsyncCommand
 
 script_dir = ''
-
+config_dir = ''
 
 def getCacheDir():
-    return os.path.join(script_dir, 'cache')
+    return os.path.join(config_dir, 'cache')
 
 
 def md5sum(filename):
