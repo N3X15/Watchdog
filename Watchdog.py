@@ -170,5 +170,5 @@ if __name__ == '__main__':
     except:
         with open(os.path.join(script_dir, 'EXCEPTION.log'), 'w') as f:
             f.write(traceback.format_exc())
-        log.critical('UNHANDLED EXCEPTION:')
-        log.critical(traceback.format_exc())
+        print('UNHANDLED EXCEPTION:')
+        print(traceback.format_exc())

@@ -20,6 +20,7 @@ STEAMCMD_USERNAME = None
 STEAMCMD_PASSWORD = None
 STEAMCMD_STEAMGUARD = None
 
+
 class SteamContent(object):
     All = []
     Lookup = {}
@@ -113,7 +114,7 @@ class SourceEngine(WatchdogEngine):
         STEAMCMD_STEAMGUARD = cfg.get('auth.steam.steamguard', None)
 
         STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
-        
+
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
 
         self.content = {}
@@ -231,47 +232,64 @@ class SourceEngine(WatchdogEngine):
                 content.Update()
                 attempts += 1
         # Needed to fix a stupid steam bug that prevents the server from starting.
-        appid_file = os.path.join(self.gamedir,'steam_appid.txt')
+        appid_file = os.path.join(self.gamedir, 'steam_appid.txt')
         if not os.path.isfile(appid_file):
-            with open(appid_file,'w') as f:
+            with open(appid_file, 'w') as f:
                 f.write(str(self.game_content.appID))
                 log.info('Wrote steam_appid.txt')
 
     def _applyDefaultsTo(self, defaults, subject, message=None):
         for k, v in defaults.items():
-            if k not in subject:
-                subject[k] = v
-                if message is not None:
-                    log.info(message, key=k, value=v)
+            if isinstance(subject, (dict, collections.OrderedDict)):
+                if k not in subject:
+                    subject[k] = v
+                    if message is not None:
+                        log.info(message, key=k, value=v)
+            elif isinstance(subject, list):
+                found = False
+                for value in subject:
+                    if isinstance(value, (dict, collections.OrderedDict)) and k in v:
+                        value[k] = v
+                        if message is not None:
+                            log.info(message, key=k, value=v)
 
     # Less duplicated code.
-    def _buildArgs(self, prefix, data):
+    def _buildArgs(self, prefix, data, defaults):
+        keys = []
         o = []
+        # New list format:
+        # [{'a','b'}] => ['+a','b']
+        # ['a']       => ['+a']
+        if isinstance(data, list):
+            for value in data:
+                if isinstance(value, (dict, collections.OrderedDict)):
+                    for k, v in value.items():
+                        keys.append(k)
+                        o.append(prefix + k)
+                        o.append(str(v))
+                else:
+                    keys.append(str(value))
+                    o.append(prefix + str(value))
         # Old dict format.
         # {'a': 'b'}  => ['+a','b']
         # {'a': None} => <skipped>
         # {'a': ''}   => ['+a']
-        if isinstance(data, (dict, collections.OrderedDict)):
+        elif isinstance(data, (dict, collections.OrderedDict)):
             for key, value in data.items():
                 if value is None:
                     continue
+                keys.append(key)
                 o.append(prefix + key)
                 if value != '':
                     o.append(str(value))
-        # New list format:
-        # [{'a','b'}] => ['+a','b']
-        # ['a']       => ['+a']
-        elif isinstance(data, list):
-            for value in data:
-                if isinstance(value, (dict, collections.OrderedDict)):
-                    for k, v in value.items():
-                        o.append(prefix + k)
-                        o.append(str(v))
-                else:
-                    o.append(prefix + str(value))
         else:
-            log.warn('BUG: Unknown _buildArgs data type: %r', data)
+            log.warn('BUG: Unknown _buildArgs data type: %r', type(data))
             log.warn('_buildArgs only accepts dict, OrderedDict, or list.')
+
+        additions={k: v for k, v in defaults if k not in keys}
+        if len(additions)>0:
+            o += self._buildArgs(prefix, additions, {})
+
         return o
 
     def start_process(self):
@@ -282,14 +300,14 @@ class SourceEngine(WatchdogEngine):
         # Goes to the daemon.
         daemon_required = {'ip': self.config.get('monitor.ip')}
         daemon_config = self.config.get('daemon.srcds_args', {})
-        self._applyDefaultsTo(daemon_required, daemon_config, 'Configuration entry {key!r} is not present in daemon.srcds_args.  Default value {value!r} is set.')
-        srcds_command += self._buildArgs('-', daemon_config)
+        #self._applyDefaultsTo(daemon_required, daemon_config, 'Configuration entry {key!r} is not present in daemon.srcds_args.  Default value {value!r} is set.')
+        srcds_command += self._buildArgs('-', daemon_config, daemon_required)
 
         # Sent to Game_srv.so or whatever.
         game_required = {}
         game_args = self.config.get('daemon.game_args', {})
-        self._applyDefaultsTo(game_required, game_args, 'Configuration entry {key!r} is not present in daemon.game_args.  Default value {value!r} is set.')
-        srcds_command += self._buildArgs('+', game_args)
+        #self._applyDefaultsTo(game_required, game_args, 'Configuration entry {key!r} is not present in daemon.game_args.  Default value {value!r} is set.')
+        srcds_command += self._buildArgs('+', game_args, game_required)
 
         niceness = self.config.get('daemon.niceness', 0)
         if niceness != 0:
