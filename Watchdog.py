@@ -40,7 +40,7 @@ import yaml
 
 from watchdog import utils
 from watchdog.engines import SourceEngine, GetEngine
-from watchdog.engines.steam import SteamContent
+from watchdog.engines.steambase import SteamContent
 
 from buildtools import os_utils, ENV
 from buildtools.config import Config

@@ -3,7 +3,9 @@ Created on Apr 27, 2015
 
 @author: Rob
 '''
-import os, sys, collections
+import os
+import sys
+import collections
 from watchdog.steam import srcupdatecheck
 
 from buildtools.config import Config
@@ -13,13 +15,14 @@ from watchdog.engines.base import WatchdogEngine, ConfigAddon
 
 STEAMCMD = ''
 
+
 class SteamContent(object):
     All = []
     Lookup = {}
-    
-    Username=None
-    Password=None
-    SteamGuard=None
+
+    Username = None
+    Password = None
+    SteamGuard = None
 
     @classmethod
     def LoadDefs(cls, dirname):
@@ -42,9 +45,9 @@ class SteamContent(object):
         if cID == -1:
             return None
         return cls.All[cID]
-    
+
     @classmethod
-    def GlobalConfigure(cls,cfg):
+    def GlobalConfigure(cls, cfg):
         global STEAMCMD
         cls.Username = cfg.get('auth.steam.username', None)
         cls.Password = cfg.get('auth.steam.password', None)
@@ -64,6 +67,7 @@ class SteamContent(object):
         self.destination = ''
         self.steamInf = ''
         self.validate = False
+        self.forced_platform=None
 
     def Configure(self, cfg, args):
         if self.requires_login:
@@ -72,13 +76,14 @@ class SteamContent(object):
                 sys.exit(1)
         self.validate = args.validate
         self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
+        self.forced_platform = cfg.get('force-platform',None)
         self.steamInf = None
         if self.game != '':
             self.steamInf = os.path.join(self.destination, self.game, 'steam.inf')
 
     def IsUpdated(self):
         'Returns false if outdated.'
-        if self.validate:
+        if self.validate or not self.steamInf:
             return False
         if not self.updatable:
             return os.path.isfile(self.steamInf)
@@ -91,6 +96,8 @@ class SteamContent(object):
                 login = [self.Username, self.Password]
                 if self.SteamGuard:
                     login.append(self.SteamGuard)
+            if self.forced_platform:
+                login += ['+@sSteamCmdForcePlatformType', self.forced_platform]
             shell_cmd = [
                 STEAMCMD,
                 '+login'] + login + [
@@ -102,13 +109,14 @@ class SteamContent(object):
             cmd(shell_cmd, echo=False, critical=True)
         if self.validate:
             self.validate = False
-                        
+
+
 class SteamBase(WatchdogEngine):
 
     def __init__(self, cfg, args):
 
         super(SteamBase, self).__init__(cfg, args)
-        
+
         SteamContent.GlobalConfigure(cfg)
 
         self.gamedir = os.path.expanduser(cfg.get('paths.run'))
@@ -122,7 +130,13 @@ class SteamBase(WatchdogEngine):
                 continue
             app.Configure(appCfg, self.cmdline_args)
             self.content[app.appID] = app
-            if app.destination == self.gamedir:
+            print(repr(appCfg))
+            target = appCfg.get('target', None)
+            if target is None:
+                target = app.destination == self.gamedir
+            elif target:
+                    log.info('Game %r forced to be target game',app.appName)
+            if target:
                 self.game_content = app
                 log.info('Found target game: %s', app.appName)
 
@@ -196,8 +210,8 @@ class SteamBase(WatchdogEngine):
             log.warn('BUG: Unknown buildArgs data type: %r', type(data))
             log.warn('buildArgs only accepts dict, OrderedDict, or list.')
 
-        additions={k: v for k, v in defaults if k not in keys}
-        if len(additions)>0:
+        additions = {k: v for k, v in defaults if k not in keys}
+        if len(additions) > 0:
             o += self.buildArgs(prefix, additions, {})
 
         return o

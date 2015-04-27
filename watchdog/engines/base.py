@@ -56,7 +56,7 @@ class WatchdogEngine(object):
         os_utils.ensureDirExists(self.cache_dir)
 
         BasicAddon.ClassDestinations = {}
-        for classID, classDest in self.config['paths']['addons'].items():
+        for classID, classDest in self.config.get('paths.addons',{}).items():
             BasicAddon.ClassDestinations[classID] = classDest
 
         self.addons = {}
@@ -93,7 +93,7 @@ class WatchdogEngine(object):
             
     def loadAddons(self):
         self.addons = {}
-        for aid, acfg in self.config['addons'].items():
+        for aid, acfg in self.config.get('addons',{}).items():
             addon = CreateAddon(self, aid, acfg)
             if addon and addon.validate():
                 self.addons[aid] = addon

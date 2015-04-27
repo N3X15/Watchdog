@@ -12,12 +12,14 @@
     script_dir: Wherever Watchdog.py was run from.
 "
 #}
-{% set game_dir = home_dir + '/spengies' %}{# Equivalent to ~/spengies #}
-{% set ds_dir = home_dir + '/DedicatedServer64' %}{# Equivalent to ~/spengies/DedicatedServer64 #}
+{% set game_dir = home_dir + '/spengies' %}{# Equivalent to ~/spengies/game #}
+{% set ds_dir = game_dir + '/DedicatedServer64' %}{# Equivalent to ~/spengies/game/DedicatedServer64 #}
 {% set steamcmd_dir = home_dir + '/steamcmd' %}
 content:
   space engineers:
     dir: {{ game_dir }}
+    target: true
+    force-platform: windows
 auth:
   steam:
     username: 'steam_username'
@@ -52,7 +54,7 @@ monitor:
   # Process name to look for.
   image: mono
   # **PUBLIC** IP to ping. (or LAN IP if it's a sv_lan 1 server)
-  ip: 192.168.1.2
+  ip: 127.0.0.1
   # Server port.
   port: 27015
   # Number of restart failures allowed before Watchdog exits.
@@ -84,7 +86,7 @@ nudge:
   port: 45678
 paths:
   # Where addons will be installed.
-  addons:
+  addons: {}
     # Only used for garrysmod.
     #lua: {{ mod_dir }}/addons
     # Source Engine addons. (SourceMod, MetaMod:Source, etc)
@@ -96,7 +98,7 @@ paths:
   # Crash logs go here.
   crashlog: {{ game_dir }}/crashlogs/
   # Where is srcds_linux?
-  run: {{ ds_dir }}/DedicatedServer64
+  run: {{ ds_dir }}
   # Stats.json isn't even used yet
   stats: {{ game_dir }}/stats.json
   # Where is steamcmd?

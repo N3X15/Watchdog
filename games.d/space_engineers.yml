@@ -3,3 +3,4 @@ gamelist:
     id: 244850
     #game: garrysmod
     name: Space Engineers
+    requires-login: true
