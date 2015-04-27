@@ -19,7 +19,8 @@ import_packages = {
     'yaml': ['yaml'],
     'psutil': ['psutil'],
     'pyparsing': ['pyparsing'],
-    'Jinja2': ['jinja2']
+    'Jinja2': ['jinja2'],
+    'lxml': ['lxml']
 }
 
 for pkg, modules in import_packages.items():

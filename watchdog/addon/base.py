@@ -125,7 +125,7 @@ class Addon(object):
     def clearInstallLog(self):
         self.installed_files=[]
 
-    def installFile(self, src, dest):
+    def installFile(self, src, dest, track=True):
         if not os.path.isdir(dest):
             log.info('mkdir -p "%s"', dest)
             os.makedirs(dest)
@@ -133,11 +133,12 @@ class Addon(object):
         if os_utils.canCopy(src, destfile):
             log.info('cp "%s" "%s"', src, dest)
             shutil.copy2(src, destfile)
-        self.registerFile(destfile)
+        if track:
+            self.registerFile(destfile)
 
-    def installFiles(self, src, dest):
+    def installFiles(self, src, dest, track=True):
         if os.path.isfile(src):
-            self.installFile(src, dest)
+            self.installFile(src, dest, track)
         elif os.path.isdir(src):
             dirname = os.path.basename(src)
             ff = FileFinder(src)

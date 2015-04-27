@@ -171,7 +171,7 @@ class AlliedModdersSnapshot(Repo):
 
                 for src in os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*'])):
                     fullpath = os.path.join(os.getcwd(),src)
-                    self.addon.installFiles(fullpath,self.destination)
+                    self.addon.installFiles(fullpath,self.destination, track=False)
                 self.addon.saveFileCache()
                 
                 self.SaveCache()

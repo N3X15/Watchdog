@@ -14,128 +14,18 @@ from buildtools.bt_logging import log
 from buildtools import os_utils, Config
 from watchdog.utils import del_empty_dirs, LoggedProcess
 import collections
-
-STEAMCMD = ''
-STEAMCMD_USERNAME = None
-STEAMCMD_PASSWORD = None
-STEAMCMD_STEAMGUARD = None
-
-
-class SteamContent(object):
-    All = []
-    Lookup = {}
-
-    @classmethod
-    def LoadDefs(cls, dirname):
-        yml = Config(None, template_dir='/')
-        yml.LoadFromFolder(dirname)
-        # pprint(yml.cfg))
-        for appIdent, appConfig in yml.get('gamelist', {}).items():
-            idents = [appIdent] + appConfig.get('aliases', [])
-            app = cls(appConfig)
-            app.aliases = idents
-            cID = len(cls.All)
-            cls.All.append(app)
-            for ident in idents:
-                cls.Lookup[ident] = cID
-        # pprint(cls.Lookup)
-
-    @classmethod
-    def Find(cls, appIdent):
-        cID = cls.Lookup.get(appIdent, -1)
-        if cID == -1:
-            return None
-        return cls.All[cID]
-
-    def __init__(self, cfg):
-        self.appID = cfg['id']
-        self.appName = cfg['name']
-        self.game = cfg.get('game', '')
-        self.config = cfg
-        self.depots = cfg.get('depots', [])
-        self.updatable = cfg.get('updatable', True)
-        self.requires_login = cfg.get('requires-login', False)
-        self.aliases = []
-        self.destination = ''
-        self.steamInf = ''
-        self.validate = False
-
-    def Configure(self, cfg, args):
-        if self.requires_login:
-            if STEAMCMD_USERNAME is None or STEAMCMD_PASSWORD is None:
-                log.error('%s requires a username and password to access.', self.appName)
-                sys.exit(1)
-        self.validate = args.validate
-        self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
-        self.steamInf = None
-        if self.game != '':
-            self.steamInf = os.path.join(self.destination, self.game, 'steam.inf')
-
-    def IsUpdated(self):
-        'Returns false if outdated.'
-        if self.validate:
-            return False
-        if not self.updatable:
-            return os.path.isfile(self.steamInf)
-        return not srcupdatecheck.CheckForUpdates(self.steamInf, quiet=True)
-
-    def Update(self):
-        with log.info('Updating content for %s (#%s)...', self.appName, self.appID):
-            login = ['anonymous']
-            if self.requires_login and STEAMCMD_USERNAME and STEAMCMD_PASSWORD:
-                login = [STEAMCMD_USERNAME, STEAMCMD_PASSWORD]
-                if STEAMCMD_STEAMGUARD:
-                    login.append(STEAMCMD_STEAMGUARD)
-            shell_cmd = [
-                STEAMCMD,
-                '+login'] + login + [
-                '+force_install_dir', self.destination,
-                '+app_update', self.appID,
-                'validate',
-                '+quit'
-            ]
-            cmd(shell_cmd, echo=False, critical=True)
-        if self.validate:
-            self.validate = False
+from watchdog.engines.steambase import SteamBase
 
 
 @EngineType('srcds')
-class SourceEngine(WatchdogEngine):
+class SourceEngine(SteamBase):
     RESTART_ON_CHANGE = True
     FASTDL_PLUGIN_ID = 'fastdl'
 
     def __init__(self, cfg, args):
-        global STEAMCMD, STEAMCMD_PASSWORD, STEAMCMD_STEAMGUARD, STEAMCMD_USERNAME  # IGNORE:global-statement Bite me.
-
         super(SourceEngine, self).__init__(cfg, args)
 
-        STEAMCMD_USERNAME = cfg.get('auth.steam.username', None)
-        STEAMCMD_PASSWORD = cfg.get('auth.steam.password', None)
-        STEAMCMD_STEAMGUARD = cfg.get('auth.steam.steamguard', None)
-
-        STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
-
-        self.gamedir = os.path.expanduser(cfg.get('paths.run'))
-
-        self.content = {}
-        self.game_content = None
-        for appIdent, appCfg in cfg['content'].items():
-            app = SteamContent.Find(appIdent)
-            if app is None:
-                log.warn('Unable to find app "%s". Skipping.', appIdent)
-                continue
-            app.Configure(appCfg, self.cmdline_args)
-            self.content[app.appID] = app
-            if app.destination == self.gamedir:
-                self.game_content = app
-                log.info('Found target game: %s', app.appName)
-
-        if 'config' in cfg['git'] and 'repo' in cfg['git']['config']:
-            self.configrepo = ConfigAddon(self, cfg.get('git.config'), os.path.join(self.gamedir, self.game_content.game))
-
         self.numPlayers = 0
-
-        self.asyncProcess = None
 
         if self.config.get('fastdl', None) is not None:
             self.load_plugin(self.FASTDL_PLUGIN_ID)
@@ -186,19 +76,7 @@ class SourceEngine(WatchdogEngine):
             with RCON((ip, port), passwd) as rcon:
                 rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
 
-    def pingServer(self, noisy=False):
-        if self.process is None or not self.process.is_running():
-            return False
-
-        maxtries = self.config.get('monitor.ping-tries', 3)
-        for trynum in range(maxtries):
-            if self._tryPing(trynum, maxtries, noisy):
-                return True
-            else:
-                noisy = True  # PANIC
-        return False
-
-    def _tryPing(self, trynum, maxtries, noisy):
+    def tryPing(self, trynum, maxtries, noisy):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         timeout = self.config.get('monitor.timeout', 10)
         try:

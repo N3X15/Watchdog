@@ -168,6 +168,7 @@ class WatchdogEngine(object):
         self.process = None
         self.restartQueued = False
 
+
     def start_process(self):
         return
 
@@ -295,5 +296,17 @@ class WatchdogEngine(object):
     def updateAlert(self, typeID=None):
         pass
 
-    def pingServer(self):
+    def tryPing(self,tryNum,maxTries,noisy):
+        return False
+    
+    def pingServer(self, noisy=False):
+        if self.process is None or not self.process.is_running():
+            return False
+
+        maxtries = self.config.get('monitor.ping-tries', 3)
+        for trynum in range(maxtries):
+            if self.tryPing(trynum, maxtries, noisy):
+                return True
+            else:
+                noisy = True  # PANIC
         return False
