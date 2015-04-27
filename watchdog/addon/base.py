@@ -182,11 +182,12 @@ class BaseBasicAddon(Addon):
         if self.clsType is not None and self.clsType not in BasicAddon.ClassDestinations:
             log.critical('Path for addon type %r is missing!', self.clsType)
             return False
-        if 'repo' not in self.config:
+        if self.config.get('repo',None) is None: 
             log.critical('Addon %r is missing its repository configuration!', self.clsType)
             return False
         if self.isBroken():
             log.warning('Addon %r is broken.',self.id)
+        print(repr(self.config['repo']))
         self.repo = CreateRepo(self, self.config['repo'], self.repo_dir)
         return True
 

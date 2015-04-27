@@ -1,4 +1,7 @@
-import psutil, os, hashlib, time
+import psutil
+import os
+import hashlib
+import time
 import yaml
 
 from buildtools.bt_logging import log
@@ -9,12 +12,14 @@ from watchdog.utils import Event
 from watchdog.plugin import CreatePlugin
 from collections import OrderedDict
 
+
 class ConfigAddon(BasicAddon):
+
     def __init__(self, engine, cfg, finaldir):
         uid = hashlib.md5(finaldir).hexdigest()
 
         cfg['dir'] = os.path.join(utils.getCacheDir(), 'repos', 'config-' + uid)
-        BasicAddon.ClassDestinations['config']=cfg['dir']
+        BasicAddon.ClassDestinations['config'] = cfg['dir']
 
         cfg['type'] = 'config'
         BasicAddon.__init__(self, engine, 'config', cfg)
@@ -23,10 +28,13 @@ class ConfigAddon(BasicAddon):
         self.validate()
         self.repo.rootdir = self.engine.config['paths']['config']
 
+
 class EngineType(object):
     all = {}
+
     def __init__(self, _id=None):
         self.id = _id
+
     def __call__(self, f):
         if self.id is None:
             fname_p = f.__name__.split('_')
@@ -35,14 +43,16 @@ class EngineType(object):
         EngineType.all[self.id] = f
         return f
 
-class RestartPriority: #IGNORE:no-init (It's an enum)
+
+class RestartPriority:  # IGNORE:no-init (It's an enum)
     ROUND_END = 0
     NOW = 1
+
 
 class WatchdogEngine(object):
     Name = "Base"
     Version = 0000
-    RestartOnChange=False
+    RestartOnChange = False
 
     def __init__(self, cfg, args):
         self.config = cfg
@@ -56,23 +66,23 @@ class WatchdogEngine(object):
         os_utils.ensureDirExists(self.cache_dir)
 
         BasicAddon.ClassDestinations = {}
-        for classID, classDest in self.config.get('paths.addons',{}).items():
+        for classID, classDest in self.config.get('paths.addons', {}).items():
             BasicAddon.ClassDestinations[classID] = classDest
 
         self.addons = {}
-        self.addons_dirty=False
+        self.addons_dirty = False
         self.loadAddons()
 
         self.configrepo = None
         self.restartQueued = False
 
         self.plugins = {}
-        self._initialized=False
+        self._initialized = False
         #: No args
         self.initialized = Event()
 
-        for plid, plcfg in self.config.get('plugins',{}).items():
-            self.load_plugin(plid,plcfg)
+        for plid, plcfg in self.config.get('plugins', {}).items():
+            self.load_plugin(plid, plcfg)
 
         # EVENTS
         ################
@@ -84,39 +94,41 @@ class WatchdogEngine(object):
         #: line(LogLine)
         self.log_received = Event()
 
-    def load_plugin(self,plID,plCfg=None):
+    def load_plugin(self, plID, plCfg=None):
         plugin = CreatePlugin(plID, self, plCfg)
         if plugin:
             self.plugins[plID] = plugin
         else:
-            log.error('Plugin %s failed to load.',plID)
-            
+            log.error('Plugin %s failed to load.', plID)
+
     def loadAddons(self):
         self.addons = {}
-        for aid, acfg in self.config.get('addons',{}).items():
+        for aid, acfg in self.config.get('addons', {}).items():
             addon = CreateAddon(self, aid, acfg)
             if addon and addon.validate():
                 self.addons[aid] = addon
             else:
-                log.error('Addon %s failed to load.',aid)
+                log.error('Addon %s failed to load.', aid)
         self.sort_addon_dependencies()
-        self.addons_dirty=False
+        self.addons_dirty = False
 
     def sort_addon_dependencies(self):
         new_addons = OrderedDict()
-        broken_addons=[]
+        broken_addons = []
 
         addonsLeft = len(self.addons)
 
         it = 0
         while addonsLeft > 0:
             it += 1
-            for addonID,addon in self.addons.items():
-                if addonID in new_addons: continue
-                if addonID in broken_addons: continue
+            for addonID, addon in self.addons.items():
+                if addonID in new_addons:
+                    continue
+                if addonID in broken_addons:
+                    continue
                 deps = addon.dependencies
                 if len(deps) == 0:
-                    new_addons[addonID]=addon
+                    new_addons[addonID] = addon
                     addonsLeft -= 1
                     #log.info('[%d] Added %s (0 deps)',it, addonID)
                     continue
@@ -124,7 +136,7 @@ class WatchdogEngine(object):
                 defer = False
                 for dep in deps:
                     if dep not in self.addons:
-                        log.error('UNABLE TO ADD ADDON %s: DEPENDENCY %s IS NOT AVAILABLE.',addonID,dep)
+                        log.error('UNABLE TO ADD ADDON %s: DEPENDENCY %s IS NOT AVAILABLE.', addonID, dep)
                         broken_addons.append(addonID)
                         addonsLeft -= 1
                         defer = True
@@ -132,11 +144,12 @@ class WatchdogEngine(object):
                     if dep not in new_addons:
                         defer = True
                         break
-                if defer: continue
-                new_addons[addonID]=addon
+                if defer:
+                    continue
+                new_addons[addonID] = addon
                 addonsLeft -= 1
                 #log.info('[%d] Added %s (%d deps)',it, addonID, len(deps))
-        self.addons=new_addons
+        self.addons = new_addons
 
     def find_process(self):
         if self.process is None or not self.process.is_running():
@@ -168,7 +181,6 @@ class WatchdogEngine(object):
         self.process = None
         self.restartQueued = False
 
-
     def start_process(self):
         return
 
@@ -192,7 +204,7 @@ class WatchdogEngine(object):
             self.restartIfNeeded(component)
 
     def restartIfNeeded(self, component):
-        restartNeeded=False
+        restartNeeded = False
         componentName = ''
 
         p = self.getRestartPriority(component, 'now')
@@ -225,8 +237,8 @@ class WatchdogEngine(object):
             restartComponent = 'config'
 
         if restartComponent is not None and not restart:
-            #self.end_process()
-            #restart=True
+            # self.end_process()
+            # restart=True
             self.restartIfNeeded(restartComponent)
 
         if restart:
@@ -235,7 +247,7 @@ class WatchdogEngine(object):
     def updateAddons(self):
         '''Returns True when an addon has changed.'''
         changed = False
-        updated_addons=[]
+        updated_addons = []
         with log.info('Updating addons...'):
             loadedAddons = {}
             newAddons = {}
@@ -255,7 +267,7 @@ class WatchdogEngine(object):
             for aid, addonCfg in loadedAddons.items():
                 if aid not in newAddons:
                     with log.info('Removing dead addon %r...', aid):
-                        addon = CreateAddon(self, aid, addonCfg,removing=True)
+                        addon = CreateAddon(self, aid, addonCfg, removing=True)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:
@@ -296,9 +308,9 @@ class WatchdogEngine(object):
     def updateAlert(self, typeID=None):
         pass
 
-    def tryPing(self,tryNum,maxTries,noisy):
+    def tryPing(self, tryNum, maxTries, noisy):
         return False
-    
+
     def pingServer(self, noisy=False):
         if self.process is None or not self.process.is_running():
             return False

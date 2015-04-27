@@ -140,7 +140,7 @@ class SteamBase(WatchdogEngine):
                 self.game_content = app
                 log.info('Found target game: %s', app.appName)
 
-        if 'config' in cfg['git'] and 'repo' in cfg['git']['config']:
+        if cfg.get('git.config',None):
             self.configrepo = ConfigAddon(self, cfg.get('git.config'), os.path.join(self.gamedir, self.game_content.game))
 
     def checkForContentUpdates(self):
