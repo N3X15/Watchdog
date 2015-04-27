@@ -1,5 +1,5 @@
 import os
-from watchdog.engines.steam import SourceEngine
+from watchdog.engines.srcds import SourceEngine
 from buildtools.bt_logging import log
 from watchdog.steam.vdf import VDFFile  # IGNORE:import-error
 from buildtools.os_utils import TimeExecution

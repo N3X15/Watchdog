@@ -1,16 +1,19 @@
 {#
+" <- Prevents my syntax highlighter from going nuts.
+
   This YAML configuration file supports Jinja2 templating with Salt extensions.  This, obviously, is a comment.
-  
+
   Anything in {% %} are a command to Jinja2. {{ ... }} render the specified variable. {{ blah|yaml_encode }} runs the variable blah through yaml_encode().
-  
+
   You don't have to use Jinja2, but it makes things a little simpler.
-  
+
   VARIABLES PASSED:
     home_dir: Whatever ~ is.  Usually /home/username on Linux, C:\Users\username on Windows.
     script_dir: Wherever Watchdog.py was run from.
+"
 #}
-{% set game_dir = home_dir + '/tf2' %}{# Equivalent to ~/tf2 #} 
-{% set mod_dir = game_dir + '/tf' %}
+{% set game_dir = home_dir + '/spengies' %}{# Equivalent to ~/spengies #}
+{% set ds_dir = home_dir + '/DedicatedServer64' %}{# Equivalent to ~/spengies/DedicatedServer64 #}
 {% set steamcmd_dir = home_dir + '/steamcmd' %}
 content:
   space engineers:
@@ -20,11 +23,11 @@ auth:
     username: 'steam_username'
     password: 'password'
     steamguard: # paste your SteamGuard token here.
-    
+
 # Environmental variables (PATH, etc)
 env:
   # Don't change this unless you know what you're doing.
-  #LD_LIBRARY_PATH: {{ game_dir }}:{{ game_dir }}/bin
+  LD_LIBRARY_PATH: {{ game_dir }}:{{ game_dir }}/Bin
 # This section is only used for the server configuration.
 git:
   config:
@@ -47,12 +50,12 @@ git:
 # Server Monitoring Configuration
 monitor:
   # Process name to look for.
-  image: srcds_linux 
+  image: mono
   # **PUBLIC** IP to ping. (or LAN IP if it's a sv_lan 1 server)
   ip: 192.168.1.2
   # Server port.
   port: 27015
-  # Number of restart failures allowed before Watchdog exits. 
+  # Number of restart failures allowed before Watchdog exits.
   max-fails: 3
   # Not used yet
   threads: false
@@ -67,8 +70,8 @@ monitor:
   #   content = Game content
   #   config = Server configuration
   # Reactions are either 'delayed', which means Watchdog will wait for the server to crash or be empty,
-  # or 'immediate', meaning there will be a global warning to players, a 'restart-wait'-specified delay, 
-  # followed by a forceful exit. 
+  # or 'immediate', meaning there will be a global warning to players, a 'restart-wait'-specified delay,
+  # followed by a forceful exit.
   restart-types:
     addon: delayed
     content: delayed
@@ -85,35 +88,39 @@ paths:
     # Only used for garrysmod.
     #lua: {{ mod_dir }}/addons
     # Source Engine addons. (SourceMod, MetaMod:Source, etc)
-    source-addon: {{ mod_dir }}/addons
+    #source-addon: {{ mod_dir }}/addons
   # Where server configuration will be installed.
-  config: {{ mod_dir }}
+  config: {{ ds_dir }}
   # Core dumps will be placed here after I get off my ass and implement them.
   cores: {{ game_dir }}/cores/
   # Crash logs go here.
   crashlog: {{ game_dir }}/crashlogs/
   # Where is srcds_linux?
-  run: {{ game_dir }}
+  run: {{ ds_dir }}/DedicatedServer64
   # Stats.json isn't even used yet
   stats: {{ game_dir }}/stats.json
   # Where is steamcmd?
   steamcmd: {{ steamcmd_dir }}
-  
+
 # How the server is actually run
 daemon:
   # Don't change this.
-  engine: srcds
-  # Server executable. NOT SRCDS_RUN!
-  launcher: srcds_linux
-  # Arguments beginning with a '-' are passed to srcds itself, and go here.
-  srcds_args:
-    ip: 192.168.1.2 # Becomes '-ip 192.168.1.2'
-    autoupdate: '' # Becomes '-autoupdate'
-    game: tf      
-    replay: ''
-    debug: None    # Removed (used internally, mostly)
-  # Arguments beginning with '+' go here.
+  engine: vrage
+
+  # Use only if you know what you're doing.
+  #niceness: 20
+
+  runtime:
+    executable: mono
+    args: [] # None
+
+  # Server executable.
+  launcher: SpaceEngineersDedicated.exe
+  #launcher: SEServerExtender.exe # If you use SESE
+  # Arguments passed to the game.
+  # Format:
+  #  - key: value
+  #  - flag
+  # Turns into "-key=value -flag"
   game_args:
-    map: mvm_mannworks
-    #tf_mvm_popfile: mvm_mannworks_30wave tee-hee~
-    maxplayers: 32
+    - console

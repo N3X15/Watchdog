@@ -74,24 +74,12 @@ class VRageEngine(SteamBase):
                 rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
         '''
 
-    def pingServer(self, noisy=False):
-        if self.process is None or not self.process.is_running():
-            return False
-
-        maxtries = self.config.get('monitor.ping-tries', 3)
-        for trynum in range(maxtries):
-            if self._tryPing(trynum, maxtries, noisy):
-                return True
-            else:
-                noisy = True  # PANIC
-        return False
-
-    def _tryPing(self, trynum, maxtries, noisy):
+    def tryPing(self, trynum, maxtries, noisy):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
         timeout = self.config.get('monitor.timeout', 10)
         try:
             if noisy:
-                log.info('Pinging %s:%d (try %d/%d)...', ip, port, trynum + 1, maxtries)
+                log.info('Querying %s:%d (ping attempt %d/%d)...', ip, port, trynum + 1, maxtries)
             with log:
                 server = ServerQuerier((ip, port), timeout=timeout)
                 # with TimeExecution('Ping'):
@@ -107,7 +95,13 @@ class VRageEngine(SteamBase):
         return True
 
     def start_process(self):
-        command = [os.path.join(self.gamedir, self.config.get('daemon.executable', 'SpaceEngineersDedicated.exe'))]
+        command=[]
+        
+        runtime = self.config.get('daemon.runtime.executable', None)
+        if runtime:
+            command += [runtime]+self.config.get('daemon.runtime.args',[])
+        
+        command.append(os.path.join(self.gamedir, self.config.get('daemon.executable', 'SpaceEngineersDedicated.exe')))
 
         game_required = {'console': ''}
         game_args = self.config.get('daemon.game_args', {})
