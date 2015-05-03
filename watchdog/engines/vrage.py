@@ -24,6 +24,8 @@ class VRageEngine(SteamBase):
         self.numPlayers = 0
 
         self.initialized.fire()
+        
+        self.asyncProcess=None
 
     def updateAlert(self, typeID=''):
         return

@@ -31,6 +31,8 @@ class SourceEngine(SteamBase):
             self.load_plugin(self.FASTDL_PLUGIN_ID)
 
         self.initialized.fire()
+        
+        self.asyncProcess=None
 
     def updateAlert(self, typeID=''):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
@@ -164,8 +166,8 @@ class SourceEngine(SteamBase):
             log.warn('BUG: Unknown _buildArgs data type: %r', type(data))
             log.warn('_buildArgs only accepts dict, OrderedDict, or list.')
 
-        additions={k: v for k, v in defaults if k not in keys}
-        if len(additions)>0:
+        additions = {k: v for k, v in defaults if k not in keys}
+        if len(additions) > 0:
             o += self._buildArgs(prefix, additions, {})
 
         return o
