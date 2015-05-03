@@ -23,13 +23,18 @@ import_packages = {
     'lxml': ['lxml']
 }
 
+failed=[]
 for pkg, modules in import_packages.items():
     try:
         for module in modules:
             importlib.import_module(module)
     except:
-        print('Failed to import {module}, which means {pkg} is not installed.  Please run "pip install {pkg}".'.format(module=module, pkg=pkg))
-        sys.exit(-1)
+        failed.append(pkg)
+        
+if len(failed)>0:
+    all_failed={k:v for k,v in import_packages if k in failed}
+    print('Failed to import modules {modules}, which means some packages are not installed.  Please run "sudo pip install {pkgs}".'.format(modules=', '.join(all_failed.values()), pkgs=' '.join(all_failed.keys())))
+    sys.exit(-1)
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
@@ -39,7 +44,7 @@ sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
 import yaml
 
 from watchdog import utils
-from watchdog.engines import SourceEngine, GetEngine
+from watchdog.engines import GetEngine
 from watchdog.engines.steambase import SteamContent
 
 from buildtools import os_utils, ENV

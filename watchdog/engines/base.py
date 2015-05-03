@@ -69,6 +69,11 @@ class WatchdogEngine(object):
         for classID, classDest in self.config.get('paths.addons', {}).items():
             BasicAddon.ClassDestinations[classID] = classDest
 
+        self.update_only = self.config.get('daemon.update-only', False)
+        if self.update_only:
+            with log.warn('Watchdog is in update-only mode.  The server will not be (re)started.'):
+                log.warn('If this behavior is unintended, please set daemon.update-only to false.')
+
         self.addons = {}
         self.addons_dirty = False
         self.loadAddons()
@@ -152,7 +157,7 @@ class WatchdogEngine(object):
         self.addons = new_addons
 
     def find_process(self):
-        if self.process is None or not self.process.is_running():
+        if not self.update_only and self.process is None or not self.process.is_running():
             self.process = None
             for proc in psutil.process_iter():
                 try:
@@ -167,7 +172,7 @@ class WatchdogEngine(object):
                     continue
 
     def end_process(self):
-        while self.process is not None and self.process.is_running():
+        while not self.update_only and self.process is not None and self.process.is_running():
             with log.info('Ending process #%d...', self.process.pid):
                 self.process.terminate()
                 self.process.wait(timeout=10)
@@ -224,7 +229,7 @@ class WatchdogEngine(object):
             self.applyUpdates(restart=True)
 
     def applyUpdates(self, restart=True):
-        if restart:
+        if restart and not self.update_only:
             self.end_process()
 
         restartComponent = None
@@ -236,13 +241,14 @@ class WatchdogEngine(object):
         if self.updateConfig():
             restartComponent = 'config'
 
-        if restartComponent is not None and not restart:
-            # self.end_process()
-            # restart=True
-            self.restartIfNeeded(restartComponent)
+        if not self.update_only:
+            if restartComponent is not None and not restart:
+                # self.end_process()
+                # restart=True
+                self.restartIfNeeded(restartComponent)
 
-        if restart:
-            self.start_process()
+            if restart:
+                self.start_process()
 
     def updateAddons(self):
         '''Returns True when an addon has changed.'''

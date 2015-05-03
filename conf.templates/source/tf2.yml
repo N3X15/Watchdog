@@ -110,6 +110,8 @@ daemon:
   engine: srcds
   # Server executable. NOT SRCDS_RUN!
   launcher: srcds_linux
+  # Set to true if you only want to monitor for updates.
+  update-only: false
   # Arguments beginning with a '-' are passed to srcds itself, and go here.
   srcds_args:
     ip: 192.168.1.2 # Becomes '-ip 192.168.1.2'

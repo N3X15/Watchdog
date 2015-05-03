@@ -82,7 +82,7 @@ def handle_install(args):
         with open('launch.sh', 'w') as f:
             f.write('#!/bin/bash\n')
             f.write('cd "{cwd}"\n'.format(cwd=os.path.realpath(args.directory)))
-            f.write('python "{script}"\n'.format(script=os.path.join(script_dir, 'Watchdog.py')))
+            f.write('python "{script}" $@\n'.format(script=os.path.join(script_dir, 'Watchdog.py')))
         log.info('chmod 700 launch.sh')
         os.chmod('launch.sh',0o700)
         cp(os.path.join(script_dir,'conf.templates',args.template), os.path.join(os.getcwd(), 'watchdog.yml'))
