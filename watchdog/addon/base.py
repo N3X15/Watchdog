@@ -187,7 +187,7 @@ class BaseBasicAddon(Addon):
             return False
         if self.isBroken():
             log.warning('Addon %r is broken.',self.id)
-        print(repr(self.config['repo']))
+        #print(repr(self.config['repo']))
         self.repo = CreateRepo(self, self.config['repo'], self.repo_dir)
         return True
 

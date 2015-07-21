@@ -1,0 +1,129 @@
+{#
+" <- Prevents my syntax highlighter from going nuts.
+
+  This YAML configuration file supports Jinja2 templating with Salt extensions.  This, obviously, is a comment.
+
+  Anything in {% %} are a command to Jinja2. {{ ... }} render the specified variable. {{ blah|yaml_encode }} runs the variable blah through yaml_encode().
+
+  You don't have to use Jinja2, but it makes things a little simpler.
+
+  VARIABLES PASSED:
+    home_dir: Whatever ~ is.  Usually /home/username on Linux, C:\Users\username on Windows.
+    script_dir: Wherever Watchdog.py was run from.
+"
+#}
+{% set game_dir = home_dir + '/spengies/game' %}{# Equivalent to ~/spengies/game #}
+{% set ds_dir = game_dir + '/DedicatedServer64' %}{# Equivalent to ~/spengies/game/DedicatedServer64 #}
+{% set bin_dir = game_dir + '/Bin64' %}{# Equivalent to ~/spengies/game/Bin64 #}
+{% set steamcmd_dir = home_dir + '/steamcmd' %}
+content:
+  space engineers:
+    dir: {{ game_dir }}
+    target: true
+    force-platform: windows
+auth:
+  steam:
+    username: 'steam_username'
+    password: 'password'
+    steamguard: # paste your SteamGuard token here after steam asks for it.
+
+# Environmental variables (PATH, etc)
+env:
+  # Don't change this unless you know what you're doing.
+  LD_LIBRARY_PATH: {{ ds_dir }}:{{ bin_dir }}
+# This section is only used for the server configuration.
+git:
+  config:
+    # Server configuration repository.
+    # Comment this section out to disable the server config repo.
+    repo:
+      # Type of repository.  Supports git and hg (mercurial). SVN soon.
+      type: git
+      # URL of the repository.
+      remote: https://bitbucket.com/your/config.git
+      #remote: git@gitlab.com:path/to/repo.git also works
+      # Branch.  Default is master on git, default on hg
+      branch: master
+      # Subdirectory mappings.
+      # Format:
+      #   repo subdirectory: game subdirectory
+      subdirs:
+        cfg: cfg # copies repo/cfg to {{game_dir}}/cfg
+        custom: custom
+# Server Monitoring Configuration
+monitor:
+  # Process name to look for.
+  image: mono
+  # **PUBLIC** IP to ping. (or LAN IP if it's a sv_lan 1 server)
+  ip: 127.0.0.1
+  # Server port.
+  port: 27015
+  # Number of restart failures allowed before Watchdog exits.
+  max-fails: 3
+  # Not used yet
+  threads: false
+  # Seconds before a ping will time out.
+  timeout: 10.0
+  # After an update with type IMMEDIATE, how many seconds between the warning and the server restart?
+  restart-wait: 30
+  # Watchdog automatically restarts and updates your server when an update is detected.
+  # The values below corresponds to how Watchdog will react to an update of the given type.
+  # Classes:
+  #   addon = Addon content
+  #   content = Game content
+  #   config = Server configuration
+  # Reactions are either 'delayed', which means Watchdog will wait for the server to crash or be empty,
+  # or 'immediate', meaning there will be a global warning to players, a 'restart-wait'-specified delay,
+  # followed by a forceful exit.
+  restart-types:
+    addon: delayed
+    content: delayed
+    config: immediate
+# Not used yet.
+nudge:
+  id: Test Server
+  ip: localhost
+  key: my secret passcode
+  port: 45678
+paths:
+  # Where addons will be installed.
+  addons: {}
+    # Only used for garrysmod.
+    #lua: {{ mod_dir }}/addons
+    # Source Engine addons. (SourceMod, MetaMod:Source, etc)
+    #source-addon: {{ mod_dir }}/addons
+  # Where server configuration will be installed.
+  config: {{ ds_dir }}
+  # Core dumps will be placed here after I get off my ass and implement them.
+  cores: {{ game_dir }}/cores/
+  # Crash logs go here.
+  crashlog: {{ game_dir }}/crashlogs/
+  # Where is srcds_linux?
+  run: {{ ds_dir }}
+  # Stats.json isn't even used yet
+  stats: {{ game_dir }}/stats.json
+  # Where is steamcmd?
+  steamcmd: {{ steamcmd_dir }}
+
+# How the server is actually run
+daemon:
+  # Don't change this.
+  engine: vrage
+
+  # Use only if you know what you're doing.
+  #niceness: 20
+
+  runtime:
+    executable: mono
+    args: [] # None
+
+  # Server executable.
+  launcher: SpaceEngineersDedicated.exe
+  #launcher: SEServerExtender.exe # If you use SESE
+  # Arguments passed to the game.
+  # Format:
+  #  - key: value
+  #  - flag
+  # Turns into "-key value -flag"
+  game_args:
+    - console

@@ -130,7 +130,7 @@ class SteamBase(WatchdogEngine):
                 continue
             app.Configure(appCfg, self.cmdline_args)
             self.content[app.appID] = app
-            print(repr(appCfg))
+            #print(repr(appCfg))
             target = appCfg.get('target', None)
             if target is None:
                 target = app.destination == self.gamedir

@@ -109,5 +109,5 @@ if __name__ == '__main__':
     log = logging.getLogger()
 
     _args = parser.parse_args()
-    print(repr(_args))
+    #print(repr(_args))
     _args.func(_args)
