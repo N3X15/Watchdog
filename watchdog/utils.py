@@ -2,7 +2,7 @@ import hashlib
 import logging
 import os
 from buildtools.bt_logging import log, logToFile
-from buildtools.os_utils import AsyncCommand
+from buildtools.twisted_utils import AsyncCommand
 
 script_dir = ''
 config_dir = ''
