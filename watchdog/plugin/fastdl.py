@@ -120,6 +120,7 @@ class FastDLPlugin(BasePlugin):
 
         with log.info('Updating FastDL for {}... (This may take a while)'.format(gamepath)):
             with os_utils.TimeExecution(DeferredLogEntry('Completed in {elapsed}s - Updated {nfiles} files')) as t:
+                t.vars['nfiles'] = '???' # Just in case
                 for scan_dir in scan_dirs:
                     log.info('Scanning %s...', scan_dir)
                     for root, _, files in os.walk(os.path.join(gamepath, scan_dir)):
@@ -130,6 +131,7 @@ class FastDLPlugin(BasePlugin):
                 t.vars['nfiles'] = self.nNew
 
             with os_utils.TimeExecution(DeferredLogEntry('Completed in {elapsed}s - Removed {nfiles} dead files')) as t:
+                t.vars['nfiles'] = '???'
                 for root, _, files in os.walk(destdir):
                     for f in files:
                         remove = False
