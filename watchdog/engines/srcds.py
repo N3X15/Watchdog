@@ -87,7 +87,7 @@ class SourceEngine(SteamBase):
             with log:
                 server = ServerQuerier((ip, port), timeout=timeout)
                 # with TimeExecution('Ping'):
-                self.numPlayers = int(server.get_info()['player_count'])
+                self.numPlayers = int(server.info()['player_count'])
                 if noisy:
                     log.info('%d players connected.', self.numPlayers)
                 if self.numPlayers == 0 and self.restartQueued:

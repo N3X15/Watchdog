@@ -41,7 +41,7 @@ def enable_addon(addon):
     if os.path.islink(link):
         log.warn("Addon %r is already enabled.", addon)
         return True
-    os_utils.ensureDirExists(os.path.dirname(link),mode=0o755)
+    os_utils.ensureDirExists(os.path.dirname(link), mode=0o755)
     if cmd(['ln', '-sf', filename, link], show_output=False, critical=True):
         log.info('Addon %r enabled.', addon)
     return True
@@ -84,8 +84,8 @@ def handle_install(args):
             f.write('cd "{cwd}"\n'.format(cwd=os.path.realpath(args.directory)))
             f.write('python "{script}" $@\n'.format(script=os.path.join(script_dir, 'Watchdog.py')))
         log.info('chmod 700 launch.sh')
-        os.chmod('launch.sh',0o700)
-        cp(os.path.join(script_dir,'conf.templates',args.template), os.path.join(os.getcwd(), 'watchdog.yml'))
+        os.chmod('launch.sh', 0o700)
+        cp(os.path.join(script_dir, 'conf.templates', args.template), os.path.join(os.getcwd(), 'watchdog.yml'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Configure addon modules.')
@@ -109,5 +109,5 @@ if __name__ == '__main__':
     log = logging.getLogger()
 
     _args = parser.parse_args()
-    #print(repr(_args))
+    # print(repr(_args))
     _args.func(_args)
