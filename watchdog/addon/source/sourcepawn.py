@@ -30,6 +30,7 @@ class SourcePawnAddon(BaseBasicAddon):
         self.smx_dir = os.path.join(self.sm_dir, 'plugins')
         self.languages_dir = os.path.join(self.sm_dir, 'languages')
         self.extensions_dir = os.path.join(self.sm_dir, 'extensions')
+        self.gamedata_dir = os.path.join(self.sm_dir, 'gamedata')
 
         self.spcomp = os.path.join(self.scripts_dir, 'spcomp')
 
@@ -42,7 +43,8 @@ class SourcePawnAddon(BaseBasicAddon):
             'compiled': self._handle_compiled,
             'include': self._handle_include,
             'language': self._handle_language,
-            'extension': self._handle_extension
+            'extension': self._handle_extension,
+            'gamedata': self._handle_gamedata
         }
         default_exts = {
             'script': ['sp'],
@@ -50,6 +52,7 @@ class SourcePawnAddon(BaseBasicAddon):
             'include': ['inc'],
             'language': ['phrases.txt'],
             'extension': ['so', 'dll'],
+            'gamedata': ['games.txt'],
         }
         for actionID, exts in self.config.get('exts', default_exts).items():
             for ext in exts:
@@ -151,6 +154,9 @@ class SourcePawnAddon(BaseBasicAddon):
 
     def _handle_include(self, src, destdir):
         return self.copyfile(src, os.path.join(self.includes_dir, destdir))
+
+    def _handle_gamedata(self, src, destdir):
+        return self.copyfile(src, os.path.join(self.gamedata_dir, destdir))
 
     def _handle_script(self, src, destdir):
         _, filename = os.path.split(src)
