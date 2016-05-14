@@ -183,7 +183,8 @@ class SourcePawnAddon(BaseBasicAddon):
         dest = os.path.join(destdir, naked_filename + '.smx')
         self.registerFile(dest)
         with Chdir(self.scripts_dir, quiet=True):
-            cmd([self.spcomp, src, '-o' + dest], critical=True, echo=True, show_output=False)
+            if not cmd([self.spcomp, src, '-o' + dest], critical=False, echo=True, show_output=False):
+                return False
         return True
 
     def update(self):
@@ -233,7 +234,10 @@ class SourcePawnAddon(BaseBasicAddon):
                 try:
                     with log.info('Compiling...'):
                         for src, destdir in self.compilable_files.items():
-                            self._compile(src, destdir)
+                            if not self._compile(src, destdir):
+                                self.saveFileCache()
+                                self.markBroken()
+                                return False
                 except Exception as e:
                     self.saveFileCache()
                     self.markBroken()
