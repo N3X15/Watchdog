@@ -1,0 +1,3 @@
+{% from script_dir + '/_jinja/addons.macro.yml' import git_addon %}
+addons:
+  {{ git_addon('ulx_restart', 'lua', 'git@git.nexisonline.net:N3X15/ulx_restart.git') }}

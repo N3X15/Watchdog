@@ -8,3 +8,4 @@ addons:
       drop-format:   'http://dedi.nexisonline.net/drop/socket/'
       drop-regex:    'socket-git(?P<build>[0-9]+)-(?P<os>linux)\.[a-z\.]+'
       version-group: ''
+      quiet: false
