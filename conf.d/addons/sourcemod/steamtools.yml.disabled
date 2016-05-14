@@ -3,4 +3,4 @@ addons:
   steamtools:
     addon: sourcepawn
     strip-ndirs: 1
-    repo: {{ limetech_repo('steamtools','0.9.1')}}
+    repo: {{ limetech_repo('steamtools','0.10.0')}}

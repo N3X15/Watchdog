@@ -1,0 +1,10 @@
+addons:
+  dhooks:
+    addon: source-addon
+    dependencies:
+      - sourcemod
+    repo:
+      type: amsnapshot
+      version-group: '2.0.0'
+      drop-regex: 'dhooks-(?P<version>[0-9\.]+)-(?P<scm>git|hg)(?P<build>[0-9]+)(-[a-f0-9]+)?-(?P<os>windows|linux|mac)\.(?P<ext>[a-z\.]+)'
+      drop-format: 'http://users.alliedmods.net/~drifter/builds/dhooks/2.0/'
