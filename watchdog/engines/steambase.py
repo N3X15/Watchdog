@@ -141,7 +141,7 @@ class SteamBase(WatchdogEngine):
                 log.info('Found target game: %s', app.appName)
 
         if cfg.get('repos.config',None) is not None:
-            self.configrepo = ConfigAddon(self, cfg.get('repos.config'), os.path.join(self.gamedir, self.game_content.game))
+            self.configrepo = ConfigAddon(self, {"repo":cfg.get('repos.config')}, os.path.join(self.gamedir, self.game_content.game))
 
     def checkForContentUpdates(self):
         for appID, content in self.content.items():
