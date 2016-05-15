@@ -1,0 +1,7 @@
+#https://github.com/GameConnect/IRCRelay
+addons:
+  updater:
+    addon: sourcepawn
+    repo:
+      type: git
+      remote: 'https://github.com/GameConnect/IRCRelay.git'

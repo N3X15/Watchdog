@@ -1,0 +1,8 @@
+addons:
+   advertisements:
+     addon: sourcepawn
+     repo:
+       branch: master
+       remote: https://github.com/ErikMinekus/sm-advertisements.git
+       type: git
+       # For debugging. quiet: false
