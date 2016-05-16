@@ -1,0 +1,9 @@
+
+addons:
+  regexfilter:
+    addon: sourcepawn
+    repo:
+      type: amattachment
+      post: 71867
+      files:
+        - regexfilter.sp
