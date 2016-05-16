@@ -1,0 +1,6 @@
+{% from script_dir + '/_jinja/limetech.macro.yml' import limetech_repo %}
+addons:
+  accelerator:
+    addon: sourcepawn
+    strip-ndirs: 1
+    repo: {{ limetech_repo('accelerator','2.2.1')}}
