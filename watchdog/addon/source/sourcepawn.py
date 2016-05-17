@@ -51,7 +51,7 @@ class SourcePawnAddon(BaseBasicAddon):
             'compiled': ['smx'],
             'include': ['inc'],
             'language': ['phrases.txt'],
-            'extension': ['so', 'dll'],
+            'extension': ['so', 'dll', 'autoload'],
             'gamedata': ['games.txt'],
         }
         for actionID, exts in self.config.get('exts', default_exts).items():
