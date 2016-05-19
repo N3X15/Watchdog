@@ -275,8 +275,8 @@ class WatchdogEngine(object):
                             sortedAddons+=unsortedAddons
                         break
                     addon = loadedAddons[addonID]
-                    if len(addon.dependencies)>0:
-                        for depend in addon.dependencies:
+                    if len(addon['dependencies'])>0:
+                        for depend in addon['dependencies']:
                             if depend not in sortedAddons:
                                 break
                     sortedAddons.append(addonID)
