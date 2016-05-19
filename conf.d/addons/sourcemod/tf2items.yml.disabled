@@ -11,4 +11,4 @@ addons:
       version-group: ''
       quiet: false
     exts:
-      'items.txt': gamedata
+      items.txt: gamedata
