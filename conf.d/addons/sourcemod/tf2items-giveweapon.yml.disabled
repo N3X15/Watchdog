@@ -3,6 +3,6 @@ addons:
      addon: sourcepawn
      repo:
        branch: master
-       remote: https://git.nexisonline.net/N3X15/TF2Items-GiveWeapon.git
+       remote: http://git.nexisonline.net/N3X15/TF2Items-GiveWeapon.git
        type: git
        # For debugging. quiet: false
