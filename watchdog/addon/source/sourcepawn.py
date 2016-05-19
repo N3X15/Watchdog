@@ -54,7 +54,7 @@ class SourcePawnAddon(BaseBasicAddon):
             'extension': ['so', 'dll', 'autoload'],
             'gamedata': ['games.txt'],
         }
-        for actionID, exts in self.config.get('exts', default_exts).items():
+        for actionID, exts in self.config.get('ext-override', default_exts).items():
             for ext in exts:
                 if ext.startswith('.'):
                     ext = ext[1:]
@@ -64,6 +64,18 @@ class SourcePawnAddon(BaseBasicAddon):
                     self.copyable_exts.append(ext)
                 self.extension_mappings[ext] = actions[actionID]
                 #log.info('MAPPED %s -> %s',ext,actions[actionID].__name__)
+                
+        for ext, actionID in self.config.get('exts', default_exts).items():
+            if ext.startswith('.'):
+                ext = ext[1:]
+            if '.' in ext:
+                if ext not in self.copyable_long_exts: 
+                    self.copyable_long_exts.append(ext)
+            else:
+                if ext not in self.copyable_exts:
+                    self.copyable_exts.append(ext)
+            self.extension_mappings[ext] = actions[actionID]
+            
 
         # config
         self.exclude_dirs = self.config.get('exclude-dirs', ['.git', '.hg', '.svn'])
