@@ -110,9 +110,12 @@ class SourcePawnAddon(BaseBasicAddon):
         if not super(SourcePawnAddon, self).validate():
             return False
 
+        if 'sourcemod' not in self.engine.addons:
+            return False
+
         # Should not trigger a failed addon load.
         self.validateInstallation()
-
+        
         if not os.path.isdir(self.sm_dir):
             log.error('SourceMod is not installed at %s.', self.sm_dir)
             self.engine.addons['sourcemod'].markBroken()
