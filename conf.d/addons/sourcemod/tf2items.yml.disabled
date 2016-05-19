@@ -5,6 +5,7 @@ addons:
       - sourcemod
     repo:
       type:          amsnapshot
+      strip-ndirs: 1
       drop-format:   'http://dedi.nexisonline.net/drop/sourcemod-tf2items/'
       drop-regex:    'sourcemod-tf2items-git(?P<build>[0-9]+)-(?P<os>linux)\.[a-z\.]+'
       version-group: ''
