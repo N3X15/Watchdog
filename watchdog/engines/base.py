@@ -77,6 +77,8 @@ class WatchdogEngine(object):
         self.addons = {}
         self.addons_dirty = False
         self.loadAddons()
+        for addon in self.addons.values():
+            addon.validate()
 
         self.configrepo = None
         self.restartQueued = False
@@ -110,7 +112,7 @@ class WatchdogEngine(object):
         self.addons = {}
         for aid, acfg in self.config.get('addons', {}).items():
             addon = CreateAddon(self, aid, acfg)
-            if addon and addon.validate():
+            if addon:
                 self.addons[aid] = addon
             else:
                 log.error('Addon %s failed to load.', aid)
@@ -142,7 +144,7 @@ class WatchdogEngine(object):
                 for dep in deps:
                     if dep not in self.addons:
                         log.error('UNABLE TO ADD ADDON %s: DEPENDENCY %r IS NOT AVAILABLE.', addonID, dep)
-                        log.error('AVAILABLE: %r',self.addons.keys())
+                        #log.error('AVAILABLE: %r',self.addons.keys())
                         broken_addons.append(addonID)
                         addonsLeft -= 1
                         defer = True
