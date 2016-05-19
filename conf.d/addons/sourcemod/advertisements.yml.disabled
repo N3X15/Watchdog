@@ -1,6 +1,8 @@
 addons:
    advertisements:
      addon: sourcepawn
+     dependencies:
+       - sourcemod
      repo:
        branch: master
        remote: https://github.com/ErikMinekus/sm-advertisements.git

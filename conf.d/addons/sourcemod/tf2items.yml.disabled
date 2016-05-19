@@ -1,5 +1,5 @@
 addons:
-  tf2items-n3x15:
+  tf2items:
     addon: sourcepawn
     dependencies:
       - sourcemod

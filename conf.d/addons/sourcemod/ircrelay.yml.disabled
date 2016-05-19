@@ -2,6 +2,8 @@
 addons:
   updater:
     addon: sourcepawn
+    dependencies:
+      - sourcemod
     repo:
       type: git
       remote: 'https://github.com/GameConnect/IRCRelay.git'

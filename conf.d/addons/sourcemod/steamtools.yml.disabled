@@ -2,5 +2,7 @@
 addons:
   steamtools:
     addon: sourcepawn
+    dependencies:
+      - sourcemod
     strip-ndirs: 1
     repo: {{ limetech_repo('steamtools','0.10.0')}}

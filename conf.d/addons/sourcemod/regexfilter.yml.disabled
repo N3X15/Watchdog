@@ -2,6 +2,8 @@
 addons:
   regexfilter:
     addon: sourcepawn
+    dependencies:
+      - sourcemod
     repo:
       type: amattachment
       post: 71867

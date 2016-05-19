@@ -2,5 +2,7 @@
 addons:
   accelerator:
     addon: sourcepawn
+    dependencies:
+      - sourcemod
     strip-ndirs: 1
     repo: {{ limetech_repo('accelerator','2.2.1')}}

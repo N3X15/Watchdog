@@ -1,6 +1,9 @@
 addons:
    tf2itemsinfo-n3x15:
      addon: sourcepawn
+    dependencies:
+      - tf2items
+      - sourcemod
      repo:
        branch: master
        remote: https://github.com/N3X15/tf2itemsinfo.git

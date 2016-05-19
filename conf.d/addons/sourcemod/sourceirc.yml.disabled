@@ -2,6 +2,7 @@ addons:
    sourceirc:
      addon: sourcepawn
      dependencies:
+       - sourcemod
        - socket
      repo:
        branch: master

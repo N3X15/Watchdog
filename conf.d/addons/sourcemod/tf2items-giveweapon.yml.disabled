@@ -1,6 +1,9 @@
 addons:
   tf2items-giveweapon:
     addon: sourcepawn
+    dependencies:
+      - tf2items
+      - sourcemod
     repo:
       type: git
       remote: http://git.nexisonline.net/N3X15/TF2Items-GiveWeapon.git

@@ -4,6 +4,7 @@ addons:
      addon: sourcepawn
      dependencies:
        - socket
+       - sourcemod
      repo:
        branch: default
        remote: https://bitbucket.org/anticheat/smac
