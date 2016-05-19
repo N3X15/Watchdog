@@ -259,31 +259,11 @@ class WatchdogEngine(object):
         updated_addons = []
         with log.info('Updating addons...'):
             loadedAddons = {}
-            unsortedAddons = []
-            sortedAddons = []
             newAddons = {}
             addonInfoFile = os.path.join(self.cache_dir, 'addons.yml')
             if os.path.isfile(addonInfoFile):
                 with open(addonInfoFile, 'r') as f:
                     loadedAddons = yaml.load(f)
-                    for addonID, addon in loadedAddons.iteritems():
-                        unsortedAddons.append(addonID)
-            with log.info('Sorting addon dependencies...'):
-                tries = 0
-                while len(unsortedAddons) > 0:
-                    if tries >= 100:
-                        with log.warn('Could not finish sorting dependencies.  Unsorted addons:'):
-                            for addonID in unsortedAddons:
-                                log.warn(addonID)
-                            sortedAddons += unsortedAddons
-                        break
-                    addon = loadedAddons[addonID]
-                    if len(addon['dependencies']) > 0:
-                        for depend in addon['dependencies']:
-                            if depend not in sortedAddons:
-                                break
-                    sortedAddons.append(addonID)
-                    unsortedAddons.remove(addonID)
             for aid, addon in self.addons.items():
                 if addon.update():
                     log.info('%s has changed! Triggering restart.', aid)
