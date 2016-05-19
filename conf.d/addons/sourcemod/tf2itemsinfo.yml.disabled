@@ -1,0 +1,8 @@
+addons:
+   tf2itemsinfo-n3x15:
+     addon: sourcepawn
+     repo:
+       branch: master
+       remote: https://github.com/N3X15/tf2itemsinfo.git
+       type: git
+       # For debugging. quiet: false

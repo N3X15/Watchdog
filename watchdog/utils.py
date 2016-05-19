@@ -83,37 +83,50 @@ class FileFinder(object):
         self.exclude_dirs = []
         self.include_ext = []
         self.include_long_exts = []
+        self.include_files = []
+        self.exclude_files = []
 
     def import_config(self, cfg):
         self.skipped_dirs = cfg.get('skipped-dirs', [])
         self.exclude_dirs = cfg.get('exclude-dirs', [])
         self.include_ext = cfg.get('include-ext', [])
+        self.exclude_files = cfg.get('exclude-files', [])
+        self.include_files = cfg.get('include-files', [])
+        
+    def _processFile(self, fullpath):
+        _, ext = os.path.splitext(fullpath)
+
+        ext = ext.strip('.')
+        long_ext = '.'.join(fullpath.split('.')[1:])
+
+        relpath = os.path.relpath(fullpath, self.path)
+
+        relpathparts = relpath.split(os.sep)
+        if relpathparts[0] in self.skipped_dirs:
+            relpathparts = relpathparts[2:]
+
+        ignore = False
+        for relpathpart in relpathparts:
+            if relpathpart in self.exclude_dirs:
+                ignore = True
+        if ignore:
+            continue
+        if len(self.include_ext) > 0 or len(self.include_long_exts) > 0:
+            if ext not in self.include_ext and long_ext not in self.include_long_exts:
+                #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
+                return None
+        relpath = '/'.join(relpathparts)
+
+        return FileInfo(fullpath=fullpath, relpath=relpath, ext=ext, long_ext=long_ext)
 
     def getFiles(self):
         for root, _, files in os.walk(self.path):
             for f in files:
-                fullpath = os.path.join(root, f)
-                _, ext = os.path.splitext(f)
-
-                ext = ext.strip('.')
-                long_ext = '.'.join(f.split('.')[1:])
-
-                relpath = os.path.relpath(fullpath, self.path)
-
-                relpathparts = relpath.split(os.sep)
-                if relpathparts[0] in self.skipped_dirs:
-                    relpathparts = relpathparts[2:]
-
-                ignore = False
-                for relpathpart in relpathparts:
-                    if relpathpart in self.exclude_dirs:
-                        ignore = True
-                if ignore:
-                    continue
-                if len(self.include_ext) > 0 or len(self.include_long_exts) > 0:
-                    if ext not in self.include_ext and long_ext not in self.include_long_exts:
-                        #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
-                        continue
-                relpath = '/'.join(relpathparts)
-
-                yield FileInfo(fullpath=fullpath, relpath=relpath, ext=ext, long_ext=long_ext)
+                returned = self._processFile(os.path.join(root, f))
+                if returned is not None:
+                    yield returned
+                
+        for f in self.included_files:
+            returned = os.path.abspath(os.path.join(os.getcwd(),f))
+            if returned is not None:
+                yield returned

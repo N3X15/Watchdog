@@ -1,0 +1,11 @@
+addons:
+  tf2items-n3x15:
+    addon: sourcepawn
+    dependencies:
+      - sourcemod
+    repo:
+      type:          amsnapshot
+      drop-format:   'http://dedi.nexisonline.net/drop/sourcemod-tf2items/'
+      drop-regex:    'sourcemod-tf2items-git(?P<build>[0-9]+)-(?P<os>linux)\.[a-z\.]+'
+      version-group: ''
+      quiet: false
