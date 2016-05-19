@@ -67,6 +67,7 @@ class SourcePawnAddon(BaseBasicAddon):
 
         # config
         self.exclude_dirs = self.config.get('exclude-dirs', ['.git', '.hg', '.svn'])
+        self.strip_ndirs = self.config.get('strip-ndirs', 0)
 
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
 
@@ -195,7 +196,6 @@ class SourcePawnAddon(BaseBasicAddon):
         return True
 
     def update(self):
-        strip_ndirs = self.config.get('strip-ndirs', 0)
         if not self.isBroken() and not self._isCompiled():
             self.markBroken()
         if super(SourcePawnAddon, self).update() or self.isBroken():
@@ -214,9 +214,9 @@ class SourcePawnAddon(BaseBasicAddon):
 
                         relpathparts = relpath.split(os.sep)
 
-                        # print(relpathparts)
-                        if strip_ndirs > 0:
-                            relpathparts = relpathparts[strip_ndirs:]
+                        if self.strip_ndirs > 0:
+                            log.info('Stripping %d from %s',self.strip_ndirs,relpath)
+                            relpathparts = relpathparts[self.strip_ndirs:]
                         if relpathparts[0] in skip_dirs:
                             relpathparts = relpathparts[2:]
 
