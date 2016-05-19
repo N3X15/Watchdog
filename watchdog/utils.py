@@ -110,7 +110,7 @@ class FileFinder(object):
             if relpathpart in self.exclude_dirs:
                 ignore = True
         if ignore:
-            continue
+            return None
         if len(self.include_ext) > 0 or len(self.include_long_exts) > 0:
             if ext not in self.include_ext and long_ext not in self.include_long_exts:
                 #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
