@@ -163,6 +163,8 @@ class AlliedModdersSnapshot(Repo):
                     cmd(['7za', 'x', filename], echo=True, critical=True)
                     cmd(['tar', 'xf', filename[:-3]], echo=True, critical=True)
                     os.remove(filename[:-3])
+                elif filename.endswith('.7z'):
+                    cmd(['7za', 'x', filename], echo=True, critical=True)
                 elif filename.endswith('.zip'):
                     cmd(['unzip', filename], echo=True, critical=True)
                 os.remove(filename)
