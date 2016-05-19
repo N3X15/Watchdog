@@ -8,6 +8,4 @@ def CreateAddon(engine, id, cfg, removing=False):
     addonclass = cfg.get('addon', 'basic')
     addon = AddonType.all[addonclass](engine, id, cfg)
     addon.removing = removing
-    if not addon.validate() and not addon.removing:
-        return None
     return addon
