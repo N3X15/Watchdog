@@ -215,7 +215,7 @@ class SourcePawnAddon(BaseBasicAddon):
             self.markBroken()
         if super(SourcePawnAddon, self).update() or self.isBroken():
             self.clearInstallLog()
-            skip_dirs = ('scripting', 'languages', 'extensions', 'include', 'gamedata')
+            skip_dirs = ('scripting', 'languages', 'extensions', 'include', 'gamedata', 'plugins')
             with log.info('Installing %s from %s...', self.id, self.repo_dir):
                 for root, _, files in os.walk(self.repo_dir):
                     # with log.info('Looking in %s...',root):
