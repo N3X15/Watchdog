@@ -83,7 +83,7 @@ class WatchdogEngine(object):
 
         self.plugins = {}
         self._initialized = False
-        #: No args
+        # : No args
         self.initialized = Event()
 
         for plid, plcfg in self.config.get('plugins', {}).items():
@@ -92,11 +92,11 @@ class WatchdogEngine(object):
         # EVENTS
         ################
 
-        #: No args.
+        # : No args.
         self.updated = Event()
-        #: addon_names(list)
+        # : addon_names(list)
         self.addons_updated = Event()
-        #: line(LogLine)
+        # : line(LogLine)
         self.log_received = Event()
 
     def load_plugin(self, plID, plCfg=None):
@@ -135,13 +135,14 @@ class WatchdogEngine(object):
                 if len(deps) == 0:
                     new_addons[addonID] = addon
                     addonsLeft -= 1
-                    #log.info('[%d] Added %s (0 deps)',it, addonID)
+                    # log.info('[%d] Added %s (0 deps)',it, addonID)
                     continue
 
                 defer = False
                 for dep in deps:
                     if dep not in self.addons:
-                        log.error('UNABLE TO ADD ADDON %s: DEPENDENCY %s IS NOT AVAILABLE.', addonID, dep)
+                        log.error('UNABLE TO ADD ADDON %s: DEPENDENCY %r IS NOT AVAILABLE.', addonID, dep)
+                        log.error('AVAILABLE: %r',self.addons.keys())
                         broken_addons.append(addonID)
                         addonsLeft -= 1
                         defer = True
@@ -153,7 +154,7 @@ class WatchdogEngine(object):
                     continue
                 new_addons[addonID] = addon
                 addonsLeft -= 1
-                #log.info('[%d] Added %s (%d deps)',it, addonID, len(deps))
+                # log.info('[%d] Added %s (%d deps)',it, addonID, len(deps))
         self.addons = new_addons
 
     def find_process(self):
@@ -256,26 +257,26 @@ class WatchdogEngine(object):
         updated_addons = []
         with log.info('Updating addons...'):
             loadedAddons = {}
-            unsortedAddons=[]
-            sortedAddons=[]
+            unsortedAddons = []
+            sortedAddons = []
             newAddons = {}
             addonInfoFile = os.path.join(self.cache_dir, 'addons.yml')
             if os.path.isfile(addonInfoFile):
                 with open(addonInfoFile, 'r') as f:
                     loadedAddons = yaml.load(f)
-                    for addonID,addon in loadedAddons.iteritems():
+                    for addonID, addon in loadedAddons.iteritems():
                         unsortedAddons.append(addonID)
             with log.info('Sorting addon dependencies...'):
-                tries=0
-                while len(unsortedAddons)>0:
+                tries = 0
+                while len(unsortedAddons) > 0:
                     if tries >= 100:
                         with log.warn('Could not finish sorting dependencies.  Unsorted addons:'):
                             for addonID in unsortedAddons:
                                 log.warn(addonID)
-                            sortedAddons+=unsortedAddons
+                            sortedAddons += unsortedAddons
                         break
                     addon = loadedAddons[addonID]
-                    if len(addon['dependencies'])>0:
+                    if len(addon['dependencies']) > 0:
                         for depend in addon['dependencies']:
                             if depend not in sortedAddons:
                                 break
