@@ -1,8 +1,8 @@
 addons:
-   tf2items-giveweapon-n3x15:
-     addon: sourcepawn
-     repo:
-       branch: master
-       remote: http://git.nexisonline.net/N3X15/TF2Items-GiveWeapon.git
-       type: git
-       # For debugging. quiet: false
+  tf2items-giveweapon:
+    addon: sourcepawn
+    repo:
+      type: git
+      remote: http://git.nexisonline.net/N3X15/TF2Items-GiveWeapon.git
+      branch: master
+      # For debugging. quiet: false
