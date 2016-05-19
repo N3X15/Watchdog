@@ -126,7 +126,7 @@ class FileFinder(object):
                 if returned is not None:
                     yield returned
                 
-        for f in self.included_files:
+        for f in self.include_files:
             returned = os.path.abspath(os.path.join(os.getcwd(),f))
             if returned is not None:
                 yield returned
