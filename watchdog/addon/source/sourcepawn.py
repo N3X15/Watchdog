@@ -111,6 +111,7 @@ class SourcePawnAddon(BaseBasicAddon):
             return False
 
         if 'sourcemod' not in self.engine.addons:
+            log.info('SourceMod not initialized.  Did you make %s dependent on it?',self.id)
             return False
 
         # Should not trigger a failed addon load.
