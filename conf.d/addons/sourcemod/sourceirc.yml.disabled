@@ -1,11 +1,11 @@
 addons:
-   sourceirc:
-     addon: sourcepawn
-     dependencies:
-       - sourcemod
-       - socket
-     repo:
-       branch: master
-       remote: https://github.com/N3X15/SourceIRC.git
-       type: git
-       # For debugging. quiet: false
+  sourceirc:
+    addon: sourcepawn
+    dependencies:
+      - sourcemod
+      - socket
+    repo:
+      branch: master
+      remote: https://github.com/N3X15/SourceIRC.git
+      type: git
+      # For debugging. quiet: false
