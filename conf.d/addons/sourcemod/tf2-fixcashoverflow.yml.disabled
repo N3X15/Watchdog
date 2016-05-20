@@ -1,0 +1,11 @@
+{% from script_dir + '/_jinja/limetech.macro.yml' import limetech_repo %}
+addons:
+  fixcashoverflow:
+    addon: sourcepawn
+    dependencies:
+      - sourcemod
+    repo:
+      type: git
+      remote: http://git.nexisonline.net/N3X15/tf2-fixcashoverflow.git
+      branch: master
+      # For debugging. quiet: false
