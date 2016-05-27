@@ -1,9 +1,13 @@
-{% from script_dir + '/_jinja/limetech.macro.yml' import limetech_repo %}
 addons:
+  # ID of addon.  Must be unique. 
   fixcashoverflow:
+    # Type of addon.  See watchdog/addons for the classes and their IDs.
     addon: sourcepawn
+    # Ensures proper install order.
     dependencies:
       - sourcemod
+    # Source of the mod.  Can be a git repo, HTTP fileshare, or even a forum attachment.
+    # See watchdog/repo for list.
     repo:
       type: git
       remote: http://git.nexisonline.net/N3X15/tf2-fixcashoverflow.git

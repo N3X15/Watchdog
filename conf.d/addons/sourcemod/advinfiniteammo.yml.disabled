@@ -1,0 +1,11 @@
+
+addons:
+  advinfiniteammo:
+    addon: sourcepawn
+    dependencies:
+      - sourcemod
+    repo:
+      type: amattachment
+      post: 190562
+      files:
+        - AdvancedInfiniteAmmo.smx
