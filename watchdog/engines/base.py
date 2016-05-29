@@ -215,7 +215,7 @@ class WatchdogEngine(object):
         restartNeeded = False
         componentName = ''
 
-        p = self.getRestartPriority(component, RestartPriority.NOW)
+        p = self.getRestartPriority(component, "NOW")
         log.info('Restart priority for %s: %s', component, "NOW" if p == RestartPriority.NOW else "ROUND_END")
         if p == RestartPriority.NOW:
             restartNeeded = True
