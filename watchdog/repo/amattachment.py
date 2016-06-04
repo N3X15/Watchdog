@@ -56,9 +56,11 @@ class AMAttachment(RepoDir):
         self.staging_dir = os.path.join(self.cache_dir, 'staging')
         os_utils.ensureDirExists(self.staging_dir, mode=0o755)
 
-        url = 'https://forums.alliedmods.net/showpost.php?p={0}&postcount=1'.format(self.postID)
-        self.http = HTTPFetcher(url)
+        self.url = 'https://forums.alliedmods.net/showpost.php?p={0}&postcount=1'.format(self.postID)
+        self.http = HTTPFetcher(self.url)
         self.http.method = 'GET'
+        self.http.useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0'
+        self.http.referer = 'https://forums.alliedmods.net'
 
         self.delay = SimpleDelayer('threadcheck', min_delay=self.config.get('threadcheck-delay', 5) * 60)
 
@@ -106,7 +108,14 @@ class AMAttachment(RepoDir):
             self.delay.Reset()
             self.saveFileCache()
             self.remote_files = {}
-            tree = fromstring(self.http.GetString())
+            log.info("Getting HTML from %s...",self.url)
+            received=self.http.GetString()
+            if 'Invalid Post specified. If you followed a valid link' in received:
+                log.critical('Invalid post %r specified in addon %s.',self.postID,self.addon.id)
+                sys.exit(1)
+            with open('cache/TEST.htm','w') as f:
+                f.write(received)
+            tree = fromstring(received)
             # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
             for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table//tr".format(THREAD=self.postID)):  # Attachments.
                 if len(tr) == 2:

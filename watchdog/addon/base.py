@@ -202,7 +202,10 @@ class BaseBasicAddon(Addon):
 
     def remove(self):
         self.uninstallFiles()
-        return self.repo.remove()
+        if self.repo:
+            return self.repo.remove()
+        else:
+            return True
 
 
 @AddonType('basic')
