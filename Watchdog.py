@@ -23,6 +23,7 @@ import_packages = {
     'lxml': ['lxml']
 }
 
+
 failed=[]
 for pkg, modules in import_packages.items():
     try:
@@ -58,6 +59,8 @@ if __name__ == '__main__':
 
     utils.script_dir = script_dir
     utils.config_dir = os.path.abspath(os.getcwd())
+    
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
     try:
         cfgPath = os.path.join(utils.config_dir, 'watchdog.yml')

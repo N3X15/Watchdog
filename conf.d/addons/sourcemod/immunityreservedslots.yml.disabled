@@ -8,4 +8,4 @@ addons:
       type: amattachment
       post: 833330
       files:
-        - immunityreserveslots_connect.smx
+        - immunityreserveslots_connect.smx 

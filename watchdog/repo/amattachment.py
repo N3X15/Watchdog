@@ -18,6 +18,12 @@ from buildtools.timing import SimpleDelayer
 from lxml.html.soupparser import fromstring
 import requests
 
+#(immunityreserveslots_src.sp - 290 views - 33.2 KB)
+REG_PLUGIN_META = re.compile(r'\(([^ ]+) \- (\d+) views \- ([0-9\.]+ [A-Z]+)\)')
+# (13.5 KB, 267 views) 
+REG_FILE_META = re.compile(r'\(([0-9\.]+ [A-Z]+), (\d+) views\)')
+
+ALLIEDMODDERS_BASEURL='https://forums.alliedmods.net/'
 @RepoType('amattachment')
 class AMAttachment(RepoDir):
 
@@ -108,49 +114,74 @@ class AMAttachment(RepoDir):
         return False
 
     def _checkThread(self):
+        def add_file(filename, url, size):
+            log.debug('Scraped %s (%s) from alliedmods forums.', filename, url)
+            if self.findFileMatch(filename):
+                self.remote_files[filename]=[url,size]
+                log.debug('MATCH!')
         if self.delay.Check(quiet=True):
             self.delay.Reset()
             self.saveFileCache()
             self.remote_files = {}
-            log.info("Getting HTML from %s...",self.url)
-            #received=self.http.GetString()
-            response = requests.get(self.url, headers=self.headers)
-            received = response.text
-            if 'Invalid Post specified. If you followed a valid link' in received:
-                log.critical('Invalid post %r specified in addon %s.',self.postID,self.addon.id)
-                sys.exit(1)
-            with open('cache/TEST.htm','w') as f:
-                f.write(received)
-            tree = fromstring(received)
-            # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
-            for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table//tr".format(THREAD=self.postID)):  # Attachments.
-                if len(tr) == 2:
-                    td = tr[1]
-                    alist = td.findall('a')
-
-                    filename = None
-                    size = None
-                    filea = None
-                    for i in range(len(alist)):
-                        log.debug('[%d] %r',i,alist[i])
-                    if len(alist) == 4:
-                        # 4 elements:
-                        # [0] = <a><strong>Get Plugin</strong></a>
-                        # [1] = or
-                        # [2] = <a>Get Source</a>
-                        # [3] = (file.sp - 1234 views - 123KB)
-                        filea = td[2]
-                        filename = td[3].strip().split()[0][1:]
-                        size = td[3].strip().split()[5][:-1]
-                    else:
-                        # [0] = <a>file.inc</a>
-                        # [1] = (123KB, 1234 views)
-                        filea = td[0]
-                        filename = filea.text.strip()
-                        size = td[1].strip().split()[0][1:]
-
-                    if self.findFileMatch(filename):
-                        self.remote_files[filename] = (filea['href'], size)
+            with log.debug("Checking %s...",self.url):
+                #received=self.http.GetString()
+                response = requests.get(self.url, headers=self.headers)
+                received = response.text
+                if 'Invalid Post specified. If you followed a valid link' in received:
+                    log.critical('Invalid post %r specified in addon %s.',self.postID,self.addon.id)
+                    sys.exit(1)
+                with open('cache/TEST.htm','w') as f:
+                    f.write(received)
+                tree = fromstring(received)
+                # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
+                for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table//tr".format(THREAD=self.postID)):  # Attachments.
+                    if len(tr) == 2:
+                        td = tr[1]
+                        alist = td.findall('a')
+                                
+                        #with log.info('alist:'):
+                        #    for i in range(len(alist)):
+                        #        log.info('[%d] %r',i,etree.tostring(alist[i]))
+                        
+                        #with log.info('td:'):
+                        #    for i in range(len(td)):
+                        #        log.info('[%d] %r',i,etree.tostring(td[i]))
+                        if len(alist) == 1:
+                            # [0] '<a href="attachment.php?s=5b98916f4860ea6c76e445f1f97fa750&amp;attachmentid=99645&amp;d=1361802056">immunityreserveslots_cbase.smx</a> (13.5 KB, 267 views)&#13;\n\t\t\t&#13;\n\t\t&#13;\n\t'
+                            a = alist[0]
+                            metadata = a.tail.strip()
+                            m = REG_FILE_META.search(metadata)
+                            if m:
+                                filename = a.text.strip()
+                                size = m.group(1)
+                                url = a.attrib['href']
+                                add_file(filename, url, size)
+                                
+                        if len(alist) == 2:
+                            # [0] '<a href="http://www.sourcemod.net/vbcompiler.php?file_id=99644"><strong>Get Plugin</strong></a> or&#13;\n\t\t\t\t'
+                            # [1] '<a href="attachment.php?s=5b98916f4860ea6c76e445f1f97fa750&amp;attachmentid=99644&amp;d=1361802050">Get Source</a> (immunityreserveslots_src.sp - 290 views - 33.2 KB)&#13;\n\t\t\t&#13;\n\t\t&#13;\n\t'
+                            found_compiled=''
+                            for a in alist:
+                                context=''
+                                if a.text:
+                                    context = a.text.strip()
+                                else:
+                                    context = a[0].text.strip()
+                                if context == 'Get Source':
+                                    metadata = a.tail.strip()
+                                    m = REG_PLUGIN_META.search(metadata)
+                                    if m:
+                                        filename = m.group(1)
+                                        size = m.group(3)
+                                        url = a.attrib['href']
+                                        add_file(filename, url, size)
+                                        
+                                        
+                                        compiled_filename = '.'.join(filename.split('.')[:-1] + ['smx']) 
+                                        if found_compiled!='' and compiled_filename not in self.remote_files:
+                                            add_file(compiled_filename, found_compiled, size)
+                                if context == 'Get Plugin': # Skip, since we can't get the size.
+                                    found_compiled=a.attrib['href']
 
         for filename, fileinfo in self.remote_files.items():
             _, size = fileinfo
@@ -173,15 +204,17 @@ class AMAttachment(RepoDir):
 
                 installTargets = self.config.get('install-targets', ['addons'])
 
-                for filename, fileinfo in self.remote_files.items():
+                for filename, fileinfo in self.remote_files.iteritems():
                     url, size = fileinfo
+                    url=ALLIEDMODDERS_BASEURL+url
+                    print(filename,url,size)
                     dl = False
                     if filename not in self.local_files:
                         dl = True
                     elif self.local_files[filename][1] != size:
                         dl = True
                     if dl:
-                        if not cmd(['wget', '-O', filename, url], echo=True, critical=True):
+                        if not cmd(['wget', '-O', filename, url.strip()], echo=True, critical=True, globbify=False):
                             return False
                         if decompressFile(filename):
                             os.remove(filename)
