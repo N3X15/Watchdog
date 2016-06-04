@@ -195,6 +195,10 @@ class BaseBasicAddon(Addon):
         return self.repo.preload()
 
     def isUp2Date(self):
+        if not self.repo:
+            self.validate()
+        if not self.repo:
+            return True
         return self.repo.isUp2Date()
 
     def update(self):
