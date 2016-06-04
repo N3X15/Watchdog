@@ -16,6 +16,7 @@ from buildtools.os_utils import cmd, Chdir, decompressFile
 import sys
 from buildtools.timing import SimpleDelayer
 from lxml.html.soupparser import fromstring
+import requests
 
 @RepoType('amattachment')
 class AMAttachment(RepoDir):
@@ -57,10 +58,13 @@ class AMAttachment(RepoDir):
         os_utils.ensureDirExists(self.staging_dir, mode=0o755)
 
         self.url = 'https://forums.alliedmods.net/showpost.php?p={0}&postcount=1'.format(self.postID)
-        self.http = HTTPFetcher(self.url)
-        self.http.method = 'GET'
-        self.http.useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0'
-        self.http.referer = 'https://forums.alliedmods.net'
+        self.headers = {
+            'user-agent': 'Watchdog/0.0.1',
+        }
+        #self.http = HTTPFetcher(self.url)
+        #self.http.method = 'GET'
+        #self.http.useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0'
+        #self.http.referer = 'https://forums.alliedmods.net'
 
         self.delay = SimpleDelayer('threadcheck', min_delay=self.config.get('threadcheck-delay', 5) * 60)
 
@@ -109,7 +113,9 @@ class AMAttachment(RepoDir):
             self.saveFileCache()
             self.remote_files = {}
             log.info("Getting HTML from %s...",self.url)
-            received=self.http.GetString()
+            #received=self.http.GetString()
+            response = requests.get(self.url, headers=self.headers)
+            received = response.text
             if 'Invalid Post specified. If you followed a valid link' in received:
                 log.critical('Invalid post %r specified in addon %s.',self.postID,self.addon.id)
                 sys.exit(1)
