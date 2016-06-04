@@ -32,7 +32,7 @@ class AddonType(object):
 
 
 class Addon(object):
-    FILECACHE_VERSION = 1
+    FILECACHE_VERSION = 2
 
     def __init__(self, engine, aid, cfg, depends=[]):
         self.engine = engine
@@ -45,7 +45,7 @@ class Addon(object):
         os_utils.ensureDirExists(self.cache_dir)
 
         self.file_cache = os.path.join(self.cache_dir, 'files.yml')
-        self.installed_files = []
+        self.fileRegistry = {}
 
         self.dependencies = cfg.get('dependencies', []) + depends
         
@@ -75,9 +75,12 @@ class Addon(object):
             return False
         return True
 
-    def registerFile(self, filename):
-        if filename not in self.installed_files:
-            self.installed_files.append(filename)
+    def registerFile(self, source, destination, track):
+        self.fileRegistry[destination]={
+            'source': source,
+            'track': track,
+            'addon': self.id
+        }
 
     def validate(self):
         return False
@@ -96,11 +99,11 @@ class Addon(object):
         return False
     
     def validateInstallation(self):
-        if len(self.installed_files) == 0:
+        if len(self.fileRegistry) == 0:
             self.loadFileCache()
-        for f in self.installed_files:
-            if not os.path.isfile(f):
-                log.error('Missing file: %s',f)
+        for dest,opts in self.fileRegistry.iteritems():
+            if not os.path.isfile(dest):
+                log.error('Missing file: %s',dest)
                 self.markBroken()
                 return
 
@@ -123,18 +126,47 @@ class Addon(object):
         return os.path.isfile(os.path.join(self.cache_dir, 'BROKEN'))
     
     def clearInstallLog(self):
-        self.installed_files=[]
+        self.fileRegistry={}
+        
+    def commitInstall(self,globalFileRegistry):
+        new=[]
+        modified=[]
+        deleted=[]
+        for newfile in self.new_files:
+            if newfile in self.installed_files:
+                modified.append(newfile)
+            else:
+                new.append(newfile)
+                log.info('N {}'.format(newfile))
+                
+        for oldfile in self.installed_files:
+            if oldfile not in self.new_files:
+                deleted.append(oldfile)
+                log.info('D {}'.format(oldfile))
 
     def installFile(self, src, dest, track=True):
-        if not os.path.isdir(dest):
-            log.info('mkdir -p "%s"', dest)
-            os.makedirs(dest)
+        #if not os.path.isdir(dest):
+        #    log.info('mkdir -p "%s"', dest)
+        #    os.makedirs(dest)
         destfile = os.path.join(dest, os.path.basename(src))
-        if os_utils.canCopy(src, destfile):
-            log.info('cp "%s" "%s"', src, dest)
-            shutil.copy2(src, destfile)
-        if track:
-            self.registerFile(destfile)
+        #if os_utils.canCopy(src, destfile):
+        #    log.info('cp "%s" "%s"', src, dest)
+        #    shutil.copy2(src, destfile)
+        #if track:
+        self.registerFile(src, destfile, track)
+        
+    def performInstallFile(self, source, destfile, track=True):
+        destdir=os.path.dirname(destfile)
+        if not os.path.isdir(destdir):
+            log.info('mkdir -p "%s"', destdir)
+            os.makedirs(destdir)
+        if (os.path.isfile(destfile) and not os.path.islink(destfile)) or os.readlink(destfile)!=source:
+            log.info('rm "%s"', destfile)
+            os.remove(destfile)
+        if not os.path.islink(destfile):
+            log.info('symlink %s -> %s',source,destfile)
+            os.symlink(source, destfile)
+            
 
     def installFiles(self, src, dest, track=True):
         if os.path.isfile(src):

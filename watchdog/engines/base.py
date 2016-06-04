@@ -75,6 +75,7 @@ class WatchdogEngine(object):
                 log.warn('If this behavior is unintended, please set daemon.update-only to false.')
 
         self.addons = {}
+        self.addon_files={}
         self.addons_dirty = False
         self.loadAddons()
         for addon in self.addons.values():
@@ -231,6 +232,18 @@ class WatchdogEngine(object):
             log.warn('Updates detected')
             self.updateAlert(componentName)
             self.applyUpdates(restart=True)
+            
+    def updateFiles(self, oldfiles):
+        with log.info('Installing new files...'):
+            for destfile, filemeta in self.addon_files.iteritems():
+                self.addons[filemeta['addon']].performInstallFile(filemeta['source'],destfile)
+                if destfile in oldfiles:
+                    oldfiles.remove(destfile)
+        with log.info('Removing outdated files...'):
+            for oldfile in oldfiles:
+                if os.path.islink(oldfile) or os.path.islink(oldfile):
+                    log.info('rm %s',oldfile)
+                    os.remove(oldfile)
 
     def applyUpdates(self, restart=True):
         if restart and not self.update_only:
@@ -240,10 +253,13 @@ class WatchdogEngine(object):
 
         if self.updateContent():
             restartComponent = 'content'
+        oldfiles=self.addon_files.keys();
         if self.updateAddons():
             restartComponent = 'addon'
         if self.updateConfig():
             restartComponent = 'config'
+            
+        self.updateFiles(oldfiles)
 
         if not self.update_only:
             if restartComponent is not None and not restart:
