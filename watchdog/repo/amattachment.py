@@ -15,7 +15,7 @@ from buildtools.bt_logging import log
 from buildtools.os_utils import cmd, Chdir, decompressFile
 import sys
 from buildtools.timing import SimpleDelayer
-
+from lxml.html.soupparser import fromstring
 
 @RepoType('amattachment')
 class AMAttachment(RepoDir):
@@ -106,7 +106,7 @@ class AMAttachment(RepoDir):
             self.delay.Reset()
             self.saveFileCache()
             self.remote_files = {}
-            tree = etree.fromstring(self.http.GetString())
+            tree = fromstring(self.http.GetString())
             # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
             for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table/tr".format(THREAD=self.postID)):  # Attachments.
                 if len(tr) == 2:
