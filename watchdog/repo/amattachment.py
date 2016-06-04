@@ -108,7 +108,7 @@ class AMAttachment(RepoDir):
             self.remote_files = {}
             tree = fromstring(self.http.GetString())
             # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
-            for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table/tr".format(THREAD=self.postID)):  # Attachments.
+            for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table//tr".format(THREAD=self.postID)):  # Attachments.
                 if len(tr) == 2:
                     td = tr[1]
                     alist = td.findall('a')
@@ -116,7 +116,7 @@ class AMAttachment(RepoDir):
                     filename = None
                     size = None
                     filea = None
-
+                    print(alist)
                     if len(alist) == 2:
                         # 4 elements:
                         # [0] = <a><strong>Get Plugin</strong></a>
