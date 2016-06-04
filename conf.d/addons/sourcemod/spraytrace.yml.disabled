@@ -3,9 +3,12 @@ addons:
     addon: sourcepawn
     dependencies:
       - sourcemod
+    destinations:
+      languages: 'translations'
     repo:
       type: amattachment
-      post: 75480
+      post: 665448
+      install-targets: ['.']
       files:
         - "Spray Trace - Full Version.zip"
         

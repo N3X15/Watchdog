@@ -6,6 +6,7 @@ Created on Apr 22, 2015
 import os
 import re
 import tempfile
+import codecs
 from lxml import etree
 from watchdog.repo.base import RepoType, RepoDir
 from buildtools.http import HTTPFetcher
@@ -18,12 +19,12 @@ from buildtools.timing import SimpleDelayer
 from lxml.html.soupparser import fromstring
 import requests
 
-#(immunityreserveslots_src.sp - 290 views - 33.2 KB)
+# (immunityreserveslots_src.sp - 290 views - 33.2 KB)
 REG_PLUGIN_META = re.compile(r'\(([^ ]+) \- (\d+) views \- ([0-9\.]+ [A-Z]+)\)')
 # (13.5 KB, 267 views) 
 REG_FILE_META = re.compile(r'\(([0-9\.]+ [A-Z]+), (\d+) views\)')
 
-ALLIEDMODDERS_BASEURL='https://forums.alliedmods.net/'
+ALLIEDMODDERS_BASEURL = 'https://forums.alliedmods.net/'
 @RepoType('amattachment')
 class AMAttachment(RepoDir):
 
@@ -31,7 +32,6 @@ class AMAttachment(RepoDir):
     Attachment in an AlliedModders forum post.
 
     pattern: str - Regex matching the attachment filename.
-    thread:  int - ID of the thread.
     post:    int - ID of the post.
 
     <a href="attachment.php?attachmentid=83286&d=1299423920">
@@ -67,10 +67,10 @@ class AMAttachment(RepoDir):
         self.headers = {
             'user-agent': 'Watchdog/0.0.1',
         }
-        #self.http = HTTPFetcher(self.url)
-        #self.http.method = 'GET'
-        #self.http.useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0'
-        #self.http.referer = 'https://forums.alliedmods.net'
+        # self.http = HTTPFetcher(self.url)
+        # self.http.method = 'GET'
+        # self.http.useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0'
+        # self.http.referer = 'https://forums.alliedmods.net'
 
         self.delay = SimpleDelayer('threadcheck', min_delay=self.config.get('threadcheck-delay', 5) * 60)
 
@@ -117,20 +117,20 @@ class AMAttachment(RepoDir):
         def add_file(filename, url, size):
             log.debug('Scraped %s (%s) from alliedmods forums.', filename, url)
             if self.findFileMatch(filename):
-                self.remote_files[filename]=[url,size]
+                self.remote_files[filename] = [url, size]
                 log.debug('MATCH!')
         if self.delay.Check(quiet=True):
             self.delay.Reset()
             self.saveFileCache()
             self.remote_files = {}
-            with log.debug("Checking %s...",self.url):
-                #received=self.http.GetString()
+            with log.debug("Checking %s...", self.url):
+                # received=self.http.GetString()
                 response = requests.get(self.url, headers=self.headers)
                 received = response.text
                 if 'Invalid Post specified. If you followed a valid link' in received:
-                    log.critical('Invalid post %r specified in addon %s.',self.postID,self.addon.id)
+                    log.critical('Invalid post %r specified in addon %s.', self.postID, self.addon.id)
                     sys.exit(1)
-                with open('cache/TEST.htm','w') as f:
+                with codecs.open('cache/TEST.htm', 'w', encoding='utf-8') as f:
                     f.write(received)
                 tree = fromstring(received)
                 # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
@@ -139,11 +139,11 @@ class AMAttachment(RepoDir):
                         td = tr[1]
                         alist = td.findall('a')
                                 
-                        #with log.info('alist:'):
+                        # with log.info('alist:'):
                         #    for i in range(len(alist)):
                         #        log.info('[%d] %r',i,etree.tostring(alist[i]))
                         
-                        #with log.info('td:'):
+                        # with log.info('td:'):
                         #    for i in range(len(td)):
                         #        log.info('[%d] %r',i,etree.tostring(td[i]))
                         if len(alist) == 1:
@@ -160,9 +160,9 @@ class AMAttachment(RepoDir):
                         if len(alist) == 2:
                             # [0] '<a href="http://www.sourcemod.net/vbcompiler.php?file_id=99644"><strong>Get Plugin</strong></a> or&#13;\n\t\t\t\t'
                             # [1] '<a href="attachment.php?s=5b98916f4860ea6c76e445f1f97fa750&amp;attachmentid=99644&amp;d=1361802050">Get Source</a> (immunityreserveslots_src.sp - 290 views - 33.2 KB)&#13;\n\t\t\t&#13;\n\t\t&#13;\n\t'
-                            found_compiled=''
+                            found_compiled = ''
                             for a in alist:
-                                context=''
+                                context = ''
                                 if a.text:
                                     context = a.text.strip()
                                 else:
@@ -178,10 +178,10 @@ class AMAttachment(RepoDir):
                                         
                                         
                                         compiled_filename = '.'.join(filename.split('.')[:-1] + ['smx']) 
-                                        if found_compiled!='' and compiled_filename not in self.remote_files:
+                                        if found_compiled != '' and compiled_filename not in self.remote_files:
                                             add_file(compiled_filename, found_compiled, size)
-                                if context == 'Get Plugin': # Skip, since we can't get the size.
-                                    found_compiled=a.attrib['href']
+                                if context == 'Get Plugin':  # Skip, since we can't get the size.
+                                    found_compiled = a.attrib['href']
 
         for filename, fileinfo in self.remote_files.items():
             _, size = fileinfo
@@ -206,8 +206,8 @@ class AMAttachment(RepoDir):
 
                 for filename, fileinfo in self.remote_files.iteritems():
                     url, size = fileinfo
-                    url=ALLIEDMODDERS_BASEURL+url
-                    print(filename,url,size)
+                    url = ALLIEDMODDERS_BASEURL + url
+                    print(filename, url, size)
                     dl = False
                     if filename not in self.local_files:
                         dl = True

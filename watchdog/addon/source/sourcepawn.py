@@ -28,7 +28,7 @@ class SourcePawnAddon(BaseBasicAddon):
         self.includes_dir = os.path.join(self.sm_dir, 'scripting', 'include')
         #self.smx_dir = os.path.join(self.sm_dir, 'scripting', 'compiled')
         self.smx_dir = os.path.join(self.sm_dir, 'plugins')
-        self.languages_dir = os.path.join(self.sm_dir, 'languages')
+        self.languages_dir = os.path.join(self.sm_dir, self.config.get('destinations.languages','languages'))
         self.extensions_dir = os.path.join(self.sm_dir, 'extensions')
         self.gamedata_dir = os.path.join(self.sm_dir, 'gamedata')
 

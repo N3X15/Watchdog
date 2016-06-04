@@ -171,7 +171,7 @@ class AlliedModdersSnapshot(Repo):
 
                 rsync_flags = []
 
-                for src in os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*'])):
+                for src in os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*']), globbify=True):
                     fullpath = os.path.join(os.getcwd(),src)
                     self.addon.installFiles(fullpath,self.destination, track=False)
                 self.addon.saveFileCache()
