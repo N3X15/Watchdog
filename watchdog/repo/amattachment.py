@@ -131,8 +131,9 @@ class AMAttachment(RepoDir):
                     filename = None
                     size = None
                     filea = None
-                    print(alist)
-                    if len(alist) == 2:
+                    for i in range(len(alist)):
+                        log.debug('[%d] %r',i,alist[i])
+                    if len(alist) == 4:
                         # 4 elements:
                         # [0] = <a><strong>Get Plugin</strong></a>
                         # [1] = or
