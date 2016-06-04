@@ -1,0 +1,11 @@
+addons:
+  spraytrace:
+    addon: sourcepawn
+    dependencies:
+      - sourcemod
+    repo:
+      type: amattachment
+      post: 75480
+      files:
+        - "Spray Trace - Full Version.zip"
+        
