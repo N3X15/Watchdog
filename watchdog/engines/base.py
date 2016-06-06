@@ -241,7 +241,7 @@ class WatchdogEngine(object):
                     oldfiles.remove(destfile)
         with log.info('Removing outdated files...'):
             for oldfile in oldfiles:
-                if os.path.islink(oldfile) or os.path.islink(oldfile):
+                if os.path.isfile(oldfile) or os.path.islink(oldfile):
                     log.info('rm %s',oldfile)
                     os.remove(oldfile)
 
@@ -253,7 +253,7 @@ class WatchdogEngine(object):
 
         if self.updateContent():
             restartComponent = 'content'
-        oldfiles=self.addon_files.keys();
+        oldfiles=list(self.addon_files.keys())
         if self.updateAddons():
             restartComponent = 'addon'
         if self.updateConfig():
