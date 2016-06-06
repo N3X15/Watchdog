@@ -1,6 +1,6 @@
 [submodule "lib/buildtools"]
 	path = lib/buildtools
-	url = https://github.com/N3X15/python-build-tools.git
+	url = https://gitlab.com/N3X15/python-build-tools.git
 [submodule "lib/valve"]
 	path = lib/valve
 	url = https://github.com/Holiverh/python-valve.git

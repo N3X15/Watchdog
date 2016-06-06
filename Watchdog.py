@@ -20,7 +20,8 @@ import_packages = {
     'psutil': ['psutil'],
     'pyparsing': ['pyparsing'],
     'Jinja2': ['jinja2'],
-    'lxml': ['lxml']
+    'lxml': ['lxml'],
+    'beautifulsoup': ['BeautifulSoup'], # bs3
 }
 
 
