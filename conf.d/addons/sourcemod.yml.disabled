@@ -1,6 +1,6 @@
 addons:
   sourcemod:
-    addon: source-addon
+    addon: sourcemod
     dependencies:
       - metamod
     metamod-target: "addons/sourcemod/bin/sourcemod_mm"

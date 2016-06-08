@@ -43,7 +43,8 @@ class SourcePawnAddon(BaseBasicAddon):
             'include': self._handle_include,
             'language': self._handle_language,
             'extension': self._handle_extension,
-            'gamedata': self._handle_gamedata
+            'gamedata': self._handle_gamedata,
+            'skip': None
         }
         default_exts = {
             'script': ['sp'],
@@ -78,6 +79,7 @@ class SourcePawnAddon(BaseBasicAddon):
 
         # config
         self.exclude_dirs = self.config.get('exclude-dirs', ['.git', '.hg', '.svn'])
+        self.exclude_files = self.config.get('exclude-files', [])
         self.strip_ndirs = self.config.get('strip-ndirs', 0)
 
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
@@ -236,31 +238,39 @@ class SourcePawnAddon(BaseBasicAddon):
                         long_ext = '.'.join(f.split('.')[1:])
 
                         relpath = os.path.relpath(fullpath, self.repo_dir)
+                        #print(relpath)
+                        if relpath in self.exclude_files:
+                            continue
 
                         relpathparts = relpath.split(os.sep)
+
+                        ignore = False
+                        for relpathpart in relpathparts:
+                            #print(relpathpart)
+                            if relpathpart in self.exclude_dirs:
+                                ignore = True
+                        if ignore:
+                            #print('Ignoring '+relpath)
+                            continue
 
                         if self.strip_ndirs > 0:
                             log.debug('Stripping %d from %s',self.strip_ndirs,relpath)
                             relpathparts = relpathparts[self.strip_ndirs:]
                         if relpathparts[0] in skip_dirs:
                             relpathparts = relpathparts[2:]
-
-                        ignore = False
-                        for relpathpart in relpathparts:
-                            if relpathpart in self.exclude_dirs:
-                                ignore = True
-                        if ignore:
-                            continue
                         if ext not in self.copyable_exts and long_ext not in self.copyable_long_exts:
                             #log.warn('%s (bad ext %s, %s)',relpath,ext,long_ext)
                             continue
                         relpath = '/'.join(relpathparts)
-
+                        if os.sep.join(relpathparts[:-1]) in self.exclude_dirs:
+                            continue
                         handler = None
                         if long_ext in self.extension_mappings:
                             handler = self.extension_mappings[long_ext]
                         elif ext in self.extension_mappings:
                             handler = self.extension_mappings[ext]
+                        if handler is None:
+                            continue
                         log.debug('Found %s',fullpath)
                         handler(fullpath, os.sep.join(relpathparts[:-1]))
                 #self.forceFilesystemSync()
