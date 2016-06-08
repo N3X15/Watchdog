@@ -34,7 +34,7 @@ for pkg, modules in import_packages.items():
         failed.append(pkg)
         
 if len(failed)>0:
-    all_failed={k:v for k,v in import_packages if k in failed}
+    all_failed={k:v for k,v in import_packages.iteritems() if k in failed}
     print('Failed to import modules {modules}, which means some packages are not installed.  Please run "sudo pip install {pkgs}".'.format(modules=', '.join(all_failed.values()), pkgs=' '.join(all_failed.keys())))
     sys.exit(-1)
 
