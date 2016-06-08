@@ -20,7 +20,8 @@ import_packages = {
     'psutil': ['psutil'],
     'pyparsing': ['pyparsing'],
     'Jinja2': ['jinja2'],
-    'lxml': ['lxml']
+    'lxml': ['lxml'],
+    'beautifulsoup': ['BeautifulSoup'], # bs3
 }
 
 
@@ -76,6 +77,7 @@ if __name__ == '__main__':
         config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'), variables=jinja_vars)
         config.set('paths.script', script_dir)
         
+        os_utils.ensureDirExists(utils.getCacheDir(), mode=0o700, noisy=True)
         with open(os.path.join(utils.getCacheDir(),'configuration.yml'),'w') as f:
             yaml.dump(config.cfg,f)
 

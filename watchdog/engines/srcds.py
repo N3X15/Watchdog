@@ -5,7 +5,7 @@ import sys
 
 # This crap always triggers an import error in PEP8, ignore it.
 from valve.source.a2s import ServerQuerier  # IGNORE:import-error
-from valve.source.rcon import RCON  # IGNORE:import-error
+from valve.rcon import RCON  # IGNORE:import-error
 
 from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
 from watchdog.steam import srcupdatecheck

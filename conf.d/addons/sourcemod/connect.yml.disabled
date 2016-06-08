@@ -4,5 +4,4 @@ addons:
     addon: sourcepawn
     dependencies:
       - sourcemod
-    strip-ndirs: 1
     repo: {{ limetech_repo('connect','1.2.0')}}

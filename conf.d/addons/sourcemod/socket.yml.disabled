@@ -1,6 +1,6 @@
 addons:
   socket:
-    addon: source-addon
+    addon: sourcepawn
     dependencies:
       - sourcemod
     repo:

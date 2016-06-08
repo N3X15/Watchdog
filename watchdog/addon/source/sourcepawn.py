@@ -20,12 +20,11 @@ class SourcePawnAddon(BaseBasicAddon):
         cfg['type'] = 'source-addon'
         super(SourcePawnAddon, self).__init__(engine, _id, cfg, depends=['sourcemod'])
 
-        self.repo_dir = os.path.join(self.cache_dir, 'staging')
-
         self.sm_dir = os.path.join(BasicAddon.ClassDestinations['source-addon'], 'sourcemod')
 
         self.scripts_dir = os.path.join(self.sm_dir, 'scripting')
         self.includes_dir = os.path.join(self.sm_dir, 'scripting', 'include')
+        self.include_from = os.path.join(self.repo_dir, self.config.get('path.include-from',os.path.join('scripting','include')))
         #self.smx_dir = os.path.join(self.sm_dir, 'scripting', 'compiled')
         self.smx_dir = os.path.join(self.sm_dir, 'plugins')
         self.languages_dir = os.path.join(self.sm_dir, self.config.get('destinations.languages','languages'))
@@ -83,7 +82,7 @@ class SourcePawnAddon(BaseBasicAddon):
 
         os_utils.ensureDirExists(self.cache_dir, mode=0o755)
 
-        self.installed_files = []
+        self.installed_files = {}
         self.compilable_files = {}
 
     def _isCompiled(self):
@@ -178,7 +177,7 @@ class SourcePawnAddon(BaseBasicAddon):
     def _handle_script(self, src, destdir):
         _, filename = os.path.split(src)
         dest = os.path.join(destdir, filename)
-        self.registerCompilable(dest, destdir)
+        self.registerCompilable(src, destdir)
         return self.copyfile(src, os.path.join(self.scripts_dir, destdir))
 
     def _handle_language(self, src, destdir):
@@ -190,11 +189,11 @@ class SourcePawnAddon(BaseBasicAddon):
             log.info('mkdir %s', destdir)
         _, filename = os.path.split(src)
         dest = os.path.join(destdir, filename)
-        self.registerFile(dest)
-        if not os_utils.canCopy(src, dest):
-            return False
-        log.info('cp %s %s', src, dest)
-        shutil.copy2(src, dest)
+        self.registerFile(src, dest, True)
+        #if not os_utils.canCopy(src, dest):
+        #    return False
+        #log.info('cp %s %s', src, dest)
+        #shutil.copy2(src, dest)
         return True
 
     def _compile(self, src, destdir):
@@ -204,12 +203,22 @@ class SourcePawnAddon(BaseBasicAddon):
             log.info('mkdir %s', destdir)
         _, filename = os.path.split(src)
         naked_filename, _ = os.path.splitext(filename)
-        dest = os.path.join(destdir, naked_filename + '.smx')
-        self.registerFile(dest)
-        with Chdir(self.scripts_dir, quiet=True):
-            if not cmd([self.spcomp, src, '-o' + dest], critical=False, echo=True, show_output=False):
-                return False
-        return True
+        addon_dest=os.path.join(os.path.dirname(src),naked_filename+'.smx')
+        final_dest = os.path.join(destdir, naked_filename + '.smx')
+        includes=[self.include_from]
+        for a in self.dependencies:
+            addon = self.engine.addons[a]
+            if isinstance(addon, SourcePawnAddon):
+                if not os.path.isdir(addon.include_from):
+                    log.warn('SPCOMP: %s is missing!',addon.include_from)
+                else:
+                    includes.append(addon.include_from)
+        includes=['-i'+x for x in includes]
+        with Chdir(self.repo_dir, quiet=True):
+            if cmd([self.spcomp, src, '-o' + addon_dest]+includes, critical=False, echo=True, show_output=False):
+                self.registerFile(addon_dest,final_dest,True)
+                return True
+        return False
 
     def update(self):
         if not self.isBroken() and not self._isCompiled():
@@ -219,7 +228,7 @@ class SourcePawnAddon(BaseBasicAddon):
             skip_dirs = ('scripting', 'languages', 'extensions', 'include', 'gamedata', 'plugins')
             with log.info('Installing %s from %s...', self.id, self.repo_dir):
                 for root, _, files in os.walk(self.repo_dir):
-                    # with log.info('Looking in %s...',root):
+                    log.debug('Looking in %s...',root)
                     for f in files:
                         fullpath = os.path.join(root, f)
                         _, ext = os.path.splitext(f)
@@ -231,7 +240,7 @@ class SourcePawnAddon(BaseBasicAddon):
                         relpathparts = relpath.split(os.sep)
 
                         if self.strip_ndirs > 0:
-                            log.info('Stripping %d from %s',self.strip_ndirs,relpath)
+                            log.debug('Stripping %d from %s',self.strip_ndirs,relpath)
                             relpathparts = relpathparts[self.strip_ndirs:]
                         if relpathparts[0] in skip_dirs:
                             relpathparts = relpathparts[2:]
@@ -253,7 +262,9 @@ class SourcePawnAddon(BaseBasicAddon):
                             handler = self.extension_mappings[long_ext]
                         elif ext in self.extension_mappings:
                             handler = self.extension_mappings[ext]
+                        log.debug('Found %s',fullpath)
                         handler(fullpath, os.sep.join(relpathparts[:-1]))
+                #self.forceFilesystemSync()
                 try:
                     with log.info('Compiling...'):
                         for src, destdir in self.compilable_files.items():
@@ -265,6 +276,7 @@ class SourcePawnAddon(BaseBasicAddon):
                     self.saveFileCache()
                     self.markBroken()
                     raise e
+                #self.forceFilesystemSync()
                 self.unmarkBroken()
                 self.saveFileCache()
                 return True

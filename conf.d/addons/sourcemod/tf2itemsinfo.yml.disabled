@@ -1,5 +1,5 @@
 addons:
-  tf2itemsinfo-n3x15:
+  tf2itemsinfo:
     addon: sourcepawn
     dependencies:
       - tf2items

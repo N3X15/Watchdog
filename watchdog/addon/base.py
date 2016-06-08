@@ -32,7 +32,7 @@ class AddonType(object):
 
 
 class Addon(object):
-    FILECACHE_VERSION = 1
+    FILECACHE_VERSION = 3
 
     def __init__(self, engine, aid, cfg, depends=[]):
         self.engine = engine
@@ -45,11 +45,13 @@ class Addon(object):
         os_utils.ensureDirExists(self.cache_dir)
 
         self.file_cache = os.path.join(self.cache_dir, 'files.yml')
-        self.installed_files = []
+        self.fileRegistry = {}
 
         self.dependencies = cfg.get('dependencies', []) + depends
         
-        self.removing=False
+        self.removing = False
+        
+        self.installed_files = {}
 
     def saveFileCache(self):
         with open(self.file_cache, 'w') as f:
@@ -63,7 +65,7 @@ class Addon(object):
     def loadFileCache(self):
         try:
             if os.path.isfile(self.file_cache):
-                #log.info('Loading %s...',self.file_cache)
+                # log.info('Loading %s...',self.file_cache)
                 with open(self.file_cache, 'r') as f:
                     version, data = yaml.load_all(f)
                     if version == self.FILECACHE_VERSION:
@@ -75,9 +77,14 @@ class Addon(object):
             return False
         return True
 
-    def registerFile(self, filename):
-        if filename not in self.installed_files:
-            self.installed_files.append(filename)
+    def registerFile(self, source, destination, track):
+        source=os.path.abspath(source)
+        destination=os.path.abspath(destination)
+        self.installed_files[destination] = {
+            'source': source,
+            'track': track,
+            'addon': self.id
+        }
 
     def validate(self):
         return False
@@ -95,20 +102,24 @@ class Addon(object):
     def remove(self):
         return False
     
+    def forceFilesystemSync(self):
+        self.commitInstall(self.engine.addon_files)
+        self.engine.updateFiles(self.engine.old_files, new_only=True)
+    
     def validateInstallation(self):
         if len(self.installed_files) == 0:
             self.loadFileCache()
-        for f in self.installed_files:
-            if not os.path.isfile(f):
-                log.error('Missing file: %s',f)
+        for dest, _ in self.installed_files.iteritems():
+            if not os.path.isfile(dest):
+                log.error('Missing file: %s', dest)
                 self.markBroken()
                 return
 
     def markBroken(self):
         if not self.isBroken():
-            #traceback.print_stack()
+            # traceback.print_stack()
             log.error('ADDON %s IS BROKEN!', self.id)
-            self.engine.addons_dirty=True
+            self.engine.addons_dirty = True
             with open(os.path.join(self.cache_dir, 'BROKEN'), 'w') as f:
                 f.write('')
 
@@ -117,24 +128,57 @@ class Addon(object):
         if os.path.isfile(brokefile):
             log.info('Addon %s is no longer broken.', self.id)
             os.remove(brokefile)
-            self.engine.addons_dirty=True
+            self.engine.addons_dirty = True
 
     def isBroken(self):
         return os.path.isfile(os.path.join(self.cache_dir, 'BROKEN'))
     
     def clearInstallLog(self):
-        self.installed_files=[]
+        self.installed_files = {}
+        
+    def commitInstall(self, globalFileRegistry):
+        for destfile, filemeta in self.installed_files.iteritems():
+            globalFileRegistry[destfile] = filemeta
+        '''
+        new=[]
+        modified=[]
+        deleted=[]
+        for newfile in self.new_files:
+            if newfile in self.installed_files:
+                modified.append(newfile)
+            else:
+                new.append(newfile)
+                log.info('N {}'.format(newfile))
+                
+        for oldfile in self.installed_files:
+            if oldfile not in self.new_files:
+                deleted.append(oldfile)
+                log.info('D {}'.format(oldfile))
+        '''
 
     def installFile(self, src, dest, track=True):
-        if not os.path.isdir(dest):
-            log.info('mkdir -p "%s"', dest)
-            os.makedirs(dest)
+        # if not os.path.isdir(dest):
+        #    log.info('mkdir -p "%s"', dest)
+        #    os.makedirs(dest)
         destfile = os.path.join(dest, os.path.basename(src))
-        if os_utils.canCopy(src, destfile):
-            log.info('cp "%s" "%s"', src, dest)
-            shutil.copy2(src, destfile)
-        if track:
-            self.registerFile(destfile)
+        # if os_utils.canCopy(src, destfile):
+        #    log.info('cp "%s" "%s"', src, dest)
+        #    shutil.copy2(src, destfile)
+        # if track:
+        self.registerFile(src, destfile, track)
+        
+    def performInstallFile(self, source, destfile, track=True):
+        destdir = os.path.dirname(destfile)
+        if not os.path.isdir(destdir):
+            log.info('mkdir -p "%s"', destdir)
+            os.makedirs(destdir)
+        if (os.path.isfile(destfile) and not os.path.islink(destfile)) or (os.path.islink(destfile) and os.readlink(destfile) != source):
+            log.info('rm "%s"', destfile)
+            os.remove(destfile)
+        if not os.path.islink(destfile):
+            log.info('symlink %s -> %s (%s)', destfile,source,self.id)
+            os.symlink(source, destfile)
+            
 
     def installFiles(self, src, dest, track=True):
         if os.path.isfile(src):
@@ -147,13 +191,10 @@ class Addon(object):
                 self.installFile(fi.fullpath, os.path.join(dest, dirname, os.path.dirname(fi.relpath)))
                 
     def uninstallFiles(self):
-        with log.info('Uninstalling files...'):
-            for f in self.installed_files:
-                if os.path.isfile(f):
-                    self.installed_files.remove(f)
-                    os.remove(f)
-                    log.info('rm "%s"',f)
-            self.saveFileCache()
+        '''
+        OBSOLETE
+        '''
+        pass
 
 
 class BaseBasicAddon(Addon):
@@ -175,23 +216,27 @@ class BaseBasicAddon(Addon):
             self.destination = os.path.join(root, _id)
         else:
             self.destination = cfg['dir']
-        self.repo_dir = self.destination
+        self.repo_dir = os.path.join(utils.getCacheDir(),'addons',self.id,'staging')
         self.repo = None
 
     def validate(self):
         if self.clsType is not None and self.clsType not in BasicAddon.ClassDestinations:
             log.critical('Path for addon type %r is missing!', self.clsType)
             return False
-        if self.config.get('repo',None) is None: 
+        if self.config.get('repo', None) is None: 
             log.critical('Addon %r is missing its repository configuration!', self.clsType)
             return False
         if self.isBroken():
-            log.warning('Addon %r is broken.',self.id)
-        #print(repr(self.config['repo']))
+            log.warning('Addon %r is broken.', self.id)
+        # print(repr(self.config['repo']))
         self.repo = CreateRepo(self, self.config['repo'], self.repo_dir)
         return True
 
     def preload(self):
+        if not self.repo:
+            self.validate()
+        if not self.repo:
+            return True
         return self.repo.preload()
 
     def isUp2Date(self):
@@ -202,6 +247,10 @@ class BaseBasicAddon(Addon):
         return self.repo.isUp2Date()
 
     def update(self):
+        if not self.repo:
+            self.validate()
+        if not self.repo:
+            return True
         return self.repo.update()
 
     def remove(self):

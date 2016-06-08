@@ -75,6 +75,8 @@ class WatchdogEngine(object):
                 log.warn('If this behavior is unintended, please set daemon.update-only to false.')
 
         self.addons = {}
+        self.addon_files={}
+        self.old_files={}
         self.addons_dirty = False
         self.loadAddons()
         for addon in self.addons.values():
@@ -231,6 +233,19 @@ class WatchdogEngine(object):
             log.warn('Updates detected')
             self.updateAlert(componentName)
             self.applyUpdates(restart=True)
+            
+    def updateFiles(self, oldfiles, new_only=False):
+        with log.info('Installing new files...'):
+            for destfile, filemeta in self.addon_files.iteritems():
+                self.addons[filemeta['addon']].performInstallFile(filemeta['source'],destfile)
+                if destfile in oldfiles:
+                    oldfiles.remove(destfile)
+        if not new_only:
+            with log.info('Removing outdated files...'):
+                for oldfile in oldfiles:
+                    if os.path.isfile(oldfile) or os.path.islink(oldfile):
+                        log.info('rm %s',oldfile)
+                        os.remove(oldfile)
 
     def applyUpdates(self, restart=True):
         if restart and not self.update_only:
@@ -240,10 +255,14 @@ class WatchdogEngine(object):
 
         if self.updateContent():
             restartComponent = 'content'
+        self.old_files=list(self.addon_files.keys())
+        self.addon_files={}
         if self.updateAddons():
             restartComponent = 'addon'
         if self.updateConfig():
             restartComponent = 'config'
+            
+        self.updateFiles(self.old_files)
 
         if not self.update_only:
             if restartComponent is not None and not restart:
@@ -258,30 +277,35 @@ class WatchdogEngine(object):
         '''Returns True when an addon has changed.'''
         changed = False
         updated_addons = []
+        new_addons=[]
         with log.info('Updating addons...'):
             loadedAddons = {}
-            newAddons = {}
+            foundAddons = {}
             addonInfoFile = os.path.join(self.cache_dir, 'addons.yml')
             if os.path.isfile(addonInfoFile):
                 with open(addonInfoFile, 'r') as f:
                     loadedAddons = yaml.load(f)
             for aid, addon in self.addons.items():
+                addon.loadFileCache()
                 if addon.update():
                     log.info('%s has changed! Triggering restart.', aid)
                     changed = True
                     updated_addons.append(aid)
                 elif aid not in loadedAddons:
+                    #if addon.update(): - Breaks shit
                     log.info('%s is new! Triggering restart.', aid)
                     changed = True
-                newAddons[aid] = addon.config
+                    new_addons.append(aid)
+                addon.commitInstall(self.addon_files)
+                foundAddons[aid] = addon.config
             for aid, addonCfg in loadedAddons.items():
-                if aid not in newAddons:
+                if aid not in foundAddons:
                     with log.info('Removing dead addon %r...', aid):
                         addon = CreateAddon(self, aid, addonCfg, removing=True)
                         addon.remove()
                         changed = True
             with open(addonInfoFile, 'w') as f:
-                yaml.dump(newAddons, f, default_flow_style=False)
+                yaml.dump(foundAddons, f, default_flow_style=False)
         if self.addons_dirty:
             with log.info('Reloading addons...'):
                 self.loadAddons()

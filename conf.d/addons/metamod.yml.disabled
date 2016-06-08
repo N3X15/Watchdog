@@ -1,6 +1,7 @@
 addons:
   metamod:
     addon: source-addon
+    addon-target: "addons/metamod/bin/server" 
     repo:
       type:          amsnapshot
       drop-format:   'http://www.metamodsource.net/mmsdrop/{VERSION}/'

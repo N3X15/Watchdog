@@ -4,8 +4,10 @@ Created on Mar 18, 2015
 @author: Rob
 '''
 import os
+from buildtools import os_utils
 from watchdog.addon.base import Addon, BasicAddon, AddonType
 from watchdog.repo import CreateRepo
+from watchdog import utils
 
 @AddonType('source')
 class SourceEngineAddon(Addon):
@@ -17,9 +19,13 @@ class SourceEngineAddon(Addon):
         if 'dir' not in cfg: 
             root=BasicAddon.ClassDestinations['source-addon']
             self.destination = os.path.join(root,id)
+            if self.id=='sourcemod':
+                print(self.destination)
+                assert self.destination == '/home/nexis/tf2/tf/addons/sourcemod'
         else:
             self.destination=cfg['dir']
         if 'repo' in cfg:
-            self.repo = CreateRepo(self, cfg.get('repo',{}), self.destination)
+            os_utils.ensureDirExists(self.repo_dir,mode=0o755)
+            self.repo = CreateRepo(self, cfg.get('repo',{}), self.repo_dir)
         else:
             self.repo = None

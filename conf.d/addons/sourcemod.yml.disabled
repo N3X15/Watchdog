@@ -3,7 +3,7 @@ addons:
     addon: source-addon
     dependencies:
       - metamod
-    skip-vdf: true
+    metamod-target: "addons/sourcemod/bin/sourcemod_mm"
     repo:
       type: amsnapshot
       drop-format:   'http://www.sourcemod.net/smdrop/{VERSION}/'
