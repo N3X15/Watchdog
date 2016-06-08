@@ -256,7 +256,6 @@ class SourcePawnAddon(BaseBasicAddon):
                             continue
                         relpath = '/'.join(relpathparts)
 
-                        # self.fastDLPaths.append(relpath)
                         handler = None
                         if long_ext in self.extension_mappings:
                             handler = self.extension_mappings[long_ext]

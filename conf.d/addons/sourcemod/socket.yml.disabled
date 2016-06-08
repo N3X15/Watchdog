@@ -3,6 +3,7 @@ addons:
     addon: sourcepawn
     dependencies:
       - sourcemod
+    exclude-dirs: ['.git', '.hg', '.svn', 'examples']
     repo:
       type:          amsnapshot
       drop-format:   'http://dedi.nexisonline.net/drop/socket/'
