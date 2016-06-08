@@ -22,6 +22,7 @@ import_packages = {
     'Jinja2': ['jinja2'],
     'lxml': ['lxml'],
     'beautifulsoup': ['BeautifulSoup'], # bs3
+    'monotonic': ['monotonic'], # valve library shit
 }
 
 
@@ -35,7 +36,7 @@ for pkg, modules in import_packages.items():
         
 if len(failed)>0:
     all_failed={k:v for k,v in import_packages.iteritems() if k in failed}
-    print('Failed to import modules {modules}, which means some packages are not installed.  Please run "sudo pip install {pkgs}".'.format(modules=', '.join(all_failed.values()), pkgs=' '.join(all_failed.keys())))
+    print('Failed to import modules {modules}, which means some packages are not installed.  Please run "sudo pip install {pkgs}".'.format(modules=', '.join([str(x) for x in all_failed.values()]), pkgs=' '.join(all_failed.keys())))
     sys.exit(-1)
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
