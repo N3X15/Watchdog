@@ -119,7 +119,7 @@ class AMAttachment(RepoDir):
                     self.delay.lastCheck = body['last-check']
 
     def saveFileCache(self):
-        log.info('Writing %s...',self.attachment_cache_file)
+        #log.info('Writing %s...',self.attachment_cache_file)
         with open(self.attachment_cache_file, 'w') as f:
             yaml.dump_all([self.VERSION, {
                 'local-files': self.local_files,
