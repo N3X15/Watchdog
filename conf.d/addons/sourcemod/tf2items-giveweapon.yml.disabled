@@ -3,6 +3,7 @@ addons:
     addon: sourcepawn
     dependencies:
       - tf2items
+      - tf2itemsinfo
       - sourcemod
     repo:
       type: git

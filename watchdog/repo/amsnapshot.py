@@ -1,4 +1,5 @@
 from watchdog.repo.base import RepoType, Repo
+from watchdog import utils
 import os
 import sys
 import yaml
@@ -43,7 +44,9 @@ class AlliedModdersSnapshot(Repo):
         self.copydirs = cfg.get('drop-format',['addons/'])
 
         self.cache_data = os.path.join(self.cache_dir, self.__class__.__name__ + '.yml')
-        os_utils.ensureDirExists(self.cache_dir, mode=0o755)
+        #self.repo_dir = os.path.join(utils.getCacheDir(), 'repos', self.addon.id, 'amsnapshot')
+        os_utils.ensureDirExists(self.cache_dir, mode=0o755, noisy=True)
+        os_utils.ensureDirExists(self.destination, mode=0o755, noisy=True)
 
         self.updateCheckDelay = timing.SimpleDelayer(self.addon.id + '.update', min_delay=self.CHECK_DELAY)
         self.avail_versions = {}
@@ -147,9 +150,10 @@ class AlliedModdersSnapshot(Repo):
     def ForceUpdate(self):
         success = False
         with log.info('Updating addon %s from AlliedModders...', self.addon.id):
-            dirname = tempfile.mkdtemp(prefix='amsnap')
-            with Chdir(dirname):
-                os_utils.ensureDirExists(self.destination)
+            tmp_dest = tempfile.mkdtemp(prefix='amsnap')
+            os_utils.ensureDirExists(tmp_dest)
+            os_utils.safe_rmtree(tmp_dest)
+            with Chdir(tmp_dest):
                 _, _, path, _, _, _ = urlparse(self.update_url)
                 filename = path.split('/')[-1]
                 cmd(['wget', '-O', filename, self.update_url], echo=True, critical=True)
@@ -171,15 +175,17 @@ class AlliedModdersSnapshot(Repo):
 
                 rsync_flags = []
 
+                #'addons/*'
                 for src in os_utils._cmd_handle_args(self.config.get('copy-from',['addons/*']), globbify=True):
                     fullpath = os.path.join(os.getcwd(),src)
-                    self.addon.installFiles(fullpath,self.destination, track=False)
-                self.addon.saveFileCache()
+                    os_utils.copytree(fullpath, self.destination)
+                #    self.addon.installFiles(fullpath,self.destination, track=False)
+                #self.addon.saveFileCache()
                 
                 self.SaveCache()
                 success = True
                 self.addon.unmarkBroken()
-            cmd(['rm', '-rf', dirname])
+            #cmd(['rm', '-rf', dirname])
         return success
 
     def update(self):

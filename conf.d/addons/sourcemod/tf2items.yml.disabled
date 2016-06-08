@@ -3,7 +3,6 @@ addons:
     addon: sourcepawn
     dependencies:
       - sourcemod
-    strip-ndirs:   1
     repo:
       type:          amsnapshot
       drop-format:   'http://dedi.nexisonline.net/drop/sourcemod-tf2items/'
@@ -12,3 +11,5 @@ addons:
       #quiet:         false
     exts:
       items.txt: gamedata
+    paths:
+      include-from: 'pawn'

@@ -113,7 +113,7 @@ class FileFinder(object):
             return None
         if len(self.include_ext) > 0 or len(self.include_long_exts) > 0:
             if ext not in self.include_ext and long_ext not in self.include_long_exts:
-                #log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
+                # log.info('%s (bad ext %s, %s)',relpath,ext,long_ext)
                 return None
         relpath = '/'.join(relpathparts)
 
@@ -127,6 +127,6 @@ class FileFinder(object):
                     yield returned
                 
         for f in self.include_files:
-            returned = os.path.abspath(os.path.join(os.getcwd(),f))
+            returned = os.path.abspath(os.path.join(os.getcwd(), f))
             if returned is not None:
                 yield returned

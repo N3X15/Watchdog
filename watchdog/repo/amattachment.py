@@ -199,8 +199,8 @@ class AMAttachment(RepoDir):
         success = False
         change = False
         with log.info('Updating addon %s from an AlliedModders forum attachment...', self.addon.id):
-            with Chdir(self.staging_dir):
-                os_utils.ensureDirExists(self.destination)
+            os_utils.ensureDirExists(self.destination)
+            with Chdir(self.destination):
 
                 installTargets = self.config.get('install-targets', ['addons'])
 
@@ -221,9 +221,6 @@ class AMAttachment(RepoDir):
                         change = True
                         self.local_files[filename] = (url, size)
 
-                for src in installTargets:
-                    fullpath = os.path.join(os.getcwd(), src)
-                    self.addon.installFiles(fullpath, self.destination)
                 self.addon.saveFileCache()
 
                 if change:
