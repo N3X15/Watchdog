@@ -25,6 +25,20 @@ REG_PLUGIN_META = re.compile(r'\(([^ ]+) \- (\d+) views \- ([0-9\.]+ [A-Z]+)\)')
 REG_FILE_META = re.compile(r'\(([0-9\.]+ [A-Z]+), (\d+) views\)')
 
 ALLIEDMODDERS_BASEURL = 'https://forums.alliedmods.net/'
+
+def cleanURL(url):
+    # https://forums.alliedmods.net/attachment.php?s=#####################&attachmentid=85509&d=##########
+    # https://forums.alliedmods.net/attachment.php?attachmentid=85509 - Only attachment ID is required.
+    url,query = url.split('?')
+    querychunks=query.split('&')
+    newquerychunks=[]
+    for chunk in querychunks:
+        if chunk.startswith('attachmentid='):
+            newquerychunks.append(chunk)
+        if chunk.startswith('d='):
+            newquerychunks.append(chunk)
+    return '?'.join([url,'&'.join(newquerychunks)])
+
 @RepoType('amattachment')
 class AMAttachment(RepoDir):
 
@@ -53,12 +67,13 @@ class AMAttachment(RepoDir):
         - ztf2_grab.inc
     '''
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self, addon, cfg, dest):
         RepoDir.__init__(self, addon, cfg, dest)
         self.postID = self.config['post']
 
+        os_utils.ensureDirExists(self.cache_dir)
         self.attachment_cache_file = os.path.join(self.cache_dir, 'amattachment.yml')
         self.staging_dir = os.path.join(self.cache_dir, 'staging')
         os_utils.ensureDirExists(self.staging_dir, mode=0o755)
@@ -88,9 +103,13 @@ class AMAttachment(RepoDir):
 
     def clearCache(self):
         self.local_files = {}
-
+        
     def preload(self):
-        self.local_files = {}
+        self.loadFileCache()
+        return True
+
+    def loadFileCache(self):
+        self.clearCache()
         if os.path.isfile(self.attachment_cache_file):
             with open(self.attachment_cache_file, 'r') as f:
                 loaded_version, body = yaml.load_all(f)
@@ -100,6 +119,7 @@ class AMAttachment(RepoDir):
                     self.delay.lastCheck = body['last-check']
 
     def saveFileCache(self):
+        log.info('Writing %s...',self.attachment_cache_file)
         with open(self.attachment_cache_file, 'w') as f:
             yaml.dump_all([self.VERSION, {
                 'local-files': self.local_files,
@@ -117,12 +137,13 @@ class AMAttachment(RepoDir):
         def add_file(filename, url, size):
             log.debug('Scraped %s (%s) from alliedmods forums.', filename, url)
             if self.findFileMatch(filename):
-                self.remote_files[filename] = [url, size]
+                self.remote_files[filename] = [cleanURL(url), size]
                 log.debug('MATCH!')
-        if self.delay.Check(quiet=True):
+        if self.delay.Check(quiet=True) or len(self.remote_files)==0:
             self.delay.Reset()
-            self.saveFileCache()
             self.remote_files = {}
+            if len(self.local_files)==0:
+                self.loadFileCache()
             with log.debug("Checking %s...", self.url):
                 # received=self.http.GetString()
                 response = requests.get(self.url, headers=self.headers)
@@ -130,8 +151,8 @@ class AMAttachment(RepoDir):
                 if 'Invalid Post specified. If you followed a valid link' in received:
                     log.critical('Invalid post %r specified in addon %s.', self.postID, self.addon.id)
                     sys.exit(1)
-                with codecs.open('cache/TEST.htm', 'w', encoding='utf-8') as f:
-                    f.write(received)
+                #with codecs.open('cache/TEST.htm', 'w', encoding='utf-8') as f:
+                #    f.write(received)
                 tree = fromstring(received)
                 # for a in tree.xpath("id('td_post_{THREAD}')//a[starts-with(@href,'attachment.php')]".format(THREAD=self.postID)):
                 for tr in tree.xpath("id('td_post_{THREAD}')//fieldset/table//tr".format(THREAD=self.postID)):  # Attachments.
@@ -182,14 +203,23 @@ class AMAttachment(RepoDir):
                                             add_file(compiled_filename, found_compiled, size)
                                 if context == 'Get Plugin':  # Skip, since we can't get the size.
                                     found_compiled = a.attrib['href']
-
+        result=True
         for filename, fileinfo in self.remote_files.items():
-            _, size = fileinfo
+            url, size = fileinfo
             if filename not in self.local_files:
-                return False
+                log.info('%s: NEW',filename)
+                result= False
             elif self.local_files[filename][1] != size:
-                return False
-        return True
+                log.info('%s: size mismatch (%s != %s)',filename,self.local_files[filename][1],size)
+                result = False
+            elif self.local_files[filename][0] != url:
+                log.info('%s: url mismatch (%s != %s)',filename,self.local_files[filename][0],url)
+                result= False
+            if not result:
+                break
+        self.local_files=self.remote_files
+        self.saveFileCache()
+        return result
 
     def isUp2Date(self):
         return self._checkThread()
@@ -207,7 +237,7 @@ class AMAttachment(RepoDir):
                 for filename, fileinfo in self.remote_files.iteritems():
                     url, size = fileinfo
                     url = ALLIEDMODDERS_BASEURL + url
-                    print(filename, url, size)
+                    #print(filename, url, size)
                     dl = False
                     if filename not in self.local_files:
                         dl = True

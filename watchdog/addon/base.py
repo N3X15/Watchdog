@@ -176,7 +176,7 @@ class Addon(object):
             log.info('rm "%s"', destfile)
             os.remove(destfile)
         if not os.path.islink(destfile):
-            log.info('symlink %s -> %s (%s)', source, destfile,self.id)
+            log.info('symlink %s -> %s (%s)', destfile,source,self.id)
             os.symlink(source, destfile)
             
 

@@ -228,7 +228,7 @@ class SourcePawnAddon(BaseBasicAddon):
             skip_dirs = ('scripting', 'languages', 'extensions', 'include', 'gamedata', 'plugins')
             with log.info('Installing %s from %s...', self.id, self.repo_dir):
                 for root, _, files in os.walk(self.repo_dir):
-                    log.info('Looking in %s...',root)
+                    log.debug('Looking in %s...',root)
                     for f in files:
                         fullpath = os.path.join(root, f)
                         _, ext = os.path.splitext(f)
@@ -240,7 +240,7 @@ class SourcePawnAddon(BaseBasicAddon):
                         relpathparts = relpath.split(os.sep)
 
                         if self.strip_ndirs > 0:
-                            log.info('Stripping %d from %s',self.strip_ndirs,relpath)
+                            log.debug('Stripping %d from %s',self.strip_ndirs,relpath)
                             relpathparts = relpathparts[self.strip_ndirs:]
                         if relpathparts[0] in skip_dirs:
                             relpathparts = relpathparts[2:]
@@ -262,9 +262,9 @@ class SourcePawnAddon(BaseBasicAddon):
                             handler = self.extension_mappings[long_ext]
                         elif ext in self.extension_mappings:
                             handler = self.extension_mappings[ext]
-                        log.info('Found %s',fullpath)
+                        log.debug('Found %s',fullpath)
                         handler(fullpath, os.sep.join(relpathparts[:-1]))
-                self.forceFilesystemSync()
+                #self.forceFilesystemSync()
                 try:
                     with log.info('Compiling...'):
                         for src, destdir in self.compilable_files.items():
@@ -276,7 +276,7 @@ class SourcePawnAddon(BaseBasicAddon):
                     self.saveFileCache()
                     self.markBroken()
                     raise e
-                self.forceFilesystemSync()
+                #self.forceFilesystemSync()
                 self.unmarkBroken()
                 self.saveFileCache()
                 return True
