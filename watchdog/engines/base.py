@@ -64,6 +64,7 @@ class WatchdogEngine(object):
         self.working_dir = os.getcwd()
         self.cache_dir = os.path.join(self.working_dir, 'cache')
         os_utils.ensureDirExists(self.cache_dir)
+        self.deletables_file = os.path.join(utils.getCacheDir(),'delete.txt')
 
         BasicAddon.ClassDestinations = {}
         for classID, classDest in self.config.get('paths.addons', {}).items():
@@ -76,6 +77,7 @@ class WatchdogEngine(object):
 
         self.addons = {}
         self.addon_files={}
+        self.addon_deletables=[]
         self.old_files={}
         self.addons_dirty = False
         self.loadAddons()
@@ -237,15 +239,34 @@ class WatchdogEngine(object):
     def updateFiles(self, oldfiles, new_only=False):
         with log.info('Installing new files...'):
             for destfile, filemeta in self.addon_files.iteritems():
-                self.addons[filemeta['addon']].performInstallFile(filemeta['source'],destfile)
-                if destfile in oldfiles:
-                    oldfiles.remove(destfile)
+                if filemeta is None:
+                    self.addon_deletables.append(destfile)
+                else:
+                    self.addons[filemeta['addon']].performInstallFile(filemeta['source'],destfile)
+                    if destfile in oldfiles:
+                        oldfiles.remove(destfile)
         if not new_only:
             with log.info('Removing outdated files...'):
-                for oldfile in oldfiles:
+                for oldfile in list(self.addon_deletables):
                     if os.path.isfile(oldfile) or os.path.islink(oldfile):
                         log.info('rm %s',oldfile)
                         os.remove(oldfile)
+                    self.addon_deletables.remove(oldfile)
+        self.writeDeletables()
+        
+    def readDeletables(self):
+        self.addon_deletables = []
+        if os.path.isfile(self.deletables_file):
+            with open(self.deletables_file,'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line == '': continue
+                    self.addon_deletables.append(line)
+                        
+    def writeDeletables(self):
+        with open(self.deletables_file,'w') as f:
+            for deletable in self.addon_deletables:
+                f.write("{}\n".format(deletable))
 
     def applyUpdates(self, restart=True):
         if restart and not self.update_only:
@@ -256,6 +277,7 @@ class WatchdogEngine(object):
         if self.updateContent():
             restartComponent = 'content'
         self.old_files=list(self.addon_files.keys())
+        self.readDeletables()
         self.addon_files={}
         if self.updateAddons():
             restartComponent = 'addon'

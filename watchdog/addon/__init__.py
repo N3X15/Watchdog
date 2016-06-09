@@ -2,6 +2,7 @@ import os
 from .base import AddonType, BasicAddon
 from .source.sourceaddon import SourceAddon
 from .source.sourcepawn import SourcePawnAddon
+from .source.sourcemod import SourceModAddon
 
 
 def CreateAddon(engine, id, cfg, removing=False):

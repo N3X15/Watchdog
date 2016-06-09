@@ -52,6 +52,7 @@ class Addon(object):
         self.removing = False
         
         self.installed_files = {}
+        self.new_files={}
 
     def saveFileCache(self):
         with open(self.file_cache, 'w') as f:
@@ -80,7 +81,8 @@ class Addon(object):
     def registerFile(self, source, destination, track):
         source=os.path.abspath(source)
         destination=os.path.abspath(destination)
-        self.installed_files[destination] = {
+        #self.installed_files[destination] = 
+        self.new_files[destination] = {
             'source': source,
             'track': track,
             'addon': self.id
@@ -137,24 +139,28 @@ class Addon(object):
         self.installed_files = {}
         
     def commitInstall(self, globalFileRegistry):
-        for destfile, filemeta in self.installed_files.iteritems():
-            globalFileRegistry[destfile] = filemeta
-        '''
-        new=[]
-        modified=[]
+            
+        new={}
+        modified={}
         deleted=[]
-        for newfile in self.new_files:
+        for newfile, filemeta in self.new_files.iteritems():
             if newfile in self.installed_files:
-                modified.append(newfile)
+                modified[newfile]=filemeta
             else:
-                new.append(newfile)
-                log.info('N {}'.format(newfile))
+                new[newfile]=filemeta
+                #log.info('N {}'.format(newfile))
                 
-        for oldfile in self.installed_files:
+        for oldfile, filemeta in self.installed_files.iteritems():
             if oldfile not in self.new_files:
                 deleted.append(oldfile)
-                log.info('D {}'.format(oldfile))
-        '''
+                #log.info('D {}'.format(oldfile))
+                
+        
+        for destfile, filemeta in self.new_files.iteritems():
+            globalFileRegistry[destfile] = filemeta
+        for destfile in deleted:
+            globalFileRegistry[destfile] = None
+            
 
     def installFile(self, src, dest, track=True):
         # if not os.path.isdir(dest):

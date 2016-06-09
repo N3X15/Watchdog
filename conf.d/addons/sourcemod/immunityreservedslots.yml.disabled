@@ -11,4 +11,7 @@ addons:
       post: 833330
       install-targets: ['.']
       files:
-        - immunityreserveslots_connect.smx 
+        - immunityreserveslots_connect.smx
+  sourcemod:
+    plugins:
+      reservedslots: off
