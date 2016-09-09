@@ -1,7 +1,8 @@
 gamelist:
-  garrysmod:
+  rust:
     id: 258550
     game: rust
     name: Rust Dedicated
     depots:
       - rust
+# RustDedicated.exe -batchmode +server.hostname "My Server Name" +server.port 28015 +server.identity "my_server" +server.seed 1234567 -logFile "output.txt" -autoupdate
