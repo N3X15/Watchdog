@@ -1,0 +1,7 @@
+gamelist:
+  garrysmod:
+    id: 258550
+    game: rust
+    name: Rust Dedicated
+    depots:
+      - rust
