@@ -3,6 +3,5 @@ gamelist:
     id: 258550
     game: rust
     name: Rust Dedicated
-    depots:
-      - rust
+    steam_inf: 'steam_appid.txt'
 # RustDedicated.exe -batchmode +server.hostname "My Server Name" +server.port 28015 +server.identity "my_server" +server.seed 1234567 -logFile "output.txt" -autoupdate

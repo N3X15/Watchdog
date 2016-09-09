@@ -79,7 +79,7 @@ class SteamContent(object):
         self.forced_platform = cfg.get('force-platform',None)
         self.steamInf = None
         if self.game != '':
-            self.steamInf = os.path.join(self.destination, self.game, 'steam.inf')
+            self.steamInf = os.path.join(self.destination, self.game, cfg.get('steam_inf','steam.inf'))
 
     def IsUpdated(self):
         'Returns false if outdated.'
