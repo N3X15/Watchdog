@@ -64,18 +64,18 @@ class SourcePawnAddon(BaseBasicAddon):
                     self.copyable_exts.append(ext)
                 self.extension_mappings[ext] = actions[actionID]
                 #log.info('MAPPED %s -> %s',ext,actions[actionID].__name__)
-                
+
         for ext, actionID in self.config.get('exts', {}).items():
             if ext.startswith('.'):
                 ext = ext[1:]
             if '.' in ext:
-                if ext not in self.copyable_long_exts: 
+                if ext not in self.copyable_long_exts:
                     self.copyable_long_exts.append(ext)
             else:
                 if ext not in self.copyable_exts:
                     self.copyable_exts.append(ext)
             self.extension_mappings[ext] = actions[actionID]
-            
+
 
         # config
         self.exclude_dirs = self.config.get('exclude-dirs', ['.git', '.hg', '.svn'])
@@ -117,7 +117,7 @@ class SourcePawnAddon(BaseBasicAddon):
 
         # Should not trigger a failed addon load.
         self.validateInstallation()
-        
+
         if not os.path.isdir(self.sm_dir):
             log.error('SourceMod is not installed at %s.', self.sm_dir)
             self.engine.addons['sourcemod'].markBroken()
