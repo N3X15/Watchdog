@@ -2,7 +2,7 @@ from buildtools.bt_logging import log
 from watchdog.engines.srcds import SourceEngine
 from watchdog.engines.gmod import GModEngine
 from watchdog.engines.base import EngineType
-from watchdog.engines.vrage import VRageEngine
+from watchdog.engines.rust import RustEngine
 
 
 def GetEngine(globalCfg, arguments):

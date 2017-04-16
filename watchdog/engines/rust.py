@@ -1,28 +1,31 @@
-import collections
 import os
+import time
 import shutil
 import sys
-import time
 
-from buildtools import Config, os_utils
-from buildtools.bt_logging import log
-from buildtools.os_utils import Chdir, TimeExecution, cmd
-from valve.rcon import RCON  # IGNORE:import-error
 # This crap always triggers an import error in PEP8, ignore it.
 from valve.source.a2s import ServerQuerier  # IGNORE:import-error
-from watchdog.engines.base import ConfigAddon, EngineType, WatchdogEngine
-from watchdog.engines.steambase import SteamBase
+#from valve.rcon import RCON
+
+from watchdog.engines.base import WatchdogEngine, ConfigAddon, EngineType
 from watchdog.steam import srcupdatecheck
-from watchdog.utils import LoggedProcess, del_empty_dirs
+from buildtools.os_utils import cmd, Chdir, TimeExecution
+from buildtools.bt_logging import log
+from buildtools import os_utils, Config
+from watchdog.utils import del_empty_dirs, LoggedProcess
+#from watchdog.steam.websocket_rcon import WSRcon
+from watchdog.steam.SourceRcon import SourceRcon
+import collections
+from watchdog.engines.steambase import SteamBase
 
 
-@EngineType('srcds')
-class SourceEngine(SteamBase):
+@EngineType('rust')
+class RustEngine(SteamBase):
     RESTART_ON_CHANGE = True
     FASTDL_PLUGIN_ID = 'fastdl'
 
     def __init__(self, cfg, args):
-        super(SourceEngine, self).__init__(cfg, args)
+        super(RustEngine, self).__init__(cfg, args)
 
         self.numPlayers = 0
 
@@ -31,7 +34,7 @@ class SourceEngine(SteamBase):
 
         self.initialized.fire()
 
-        self.asyncProcess = None
+        self.asyncProcess=None
 
     def updateAlert(self, typeID=''):
         ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
@@ -55,8 +58,7 @@ class SourceEngine(SteamBase):
                     rcon('say [Watchdog] {type} update detected, restarting in {time} seconds.'.format(
                         type=typeID, time=wait))
                     time.sleep(wait)
-                rcon(
-                    'say [Watchdog] Restarting now to update {}.'.format(typeID))
+                rcon('say [Watchdog] Restarting now to update {}.'.format(typeID))
 
     def queueRestart(self, typeID):
         WatchdogEngine.queueRestart(self, typeID)
@@ -78,15 +80,25 @@ class SourceEngine(SteamBase):
                 rcon('say [Watchdog] {} update detected, restarting at the end of the round, or when the server empties.'.format(typeID))
 
     def tryPing(self, trynum, maxtries, noisy):
-        ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 28018)
         timeout = self.config.get('monitor.timeout', 10)
+        passwd = self.config.get('auth.rcon.password',None)
         try:
-            if noisy:
+            if noisy or True:
                 log.info('Pinging %s:%d (try %d/%d)...', ip, port, trynum + 1, maxtries)
             with log:
-                server = ServerQuerier((ip, port), timeout=timeout)
+                nPlayers=0
+                #with RCON((ip, port), passwd) as rcon:
+                #    result = rcon('players')
+                rcon = SourceRcon(ip,port,passwd)
+                result = rcon.rcon('players')
+                rcon.disconnect()
+                print(repr(result))
+                for line in result.split('\n'):
+                    nPlayers+=1
+                    print(line.strip())
                 # with TimeExecution('Ping'):
-                self.numPlayers = int(server.info()['player_count'])
+                self.numPlayers = nPlayers
                 if noisy:
                     log.info('%d players connected.', self.numPlayers)
                 if self.numPlayers == 0 and self.restartQueued:
@@ -165,36 +177,38 @@ class SourceEngine(SteamBase):
             log.warn('BUG: Unknown _buildArgs data type: %r', type(data))
             log.warn('_buildArgs only accepts dict, OrderedDict, or list.')
 
-        additions = {k: v for k, v in defaults if k not in keys}
+        additions = {k: v for k, v in defaults.iteritems() if k not in keys}
         if len(additions) > 0:
             o += self._buildArgs(prefix, additions, {})
 
         return o
 
     def start_process(self):
-        srcds_command = [os.path.join(self.gamedir, self.config.get('daemon.launcher', 'srcds_run'))]
-
-        srcds_command.append('-norestart')
-
+        srcds_command = [os.path.join(self.gamedir, self.config.get('daemon.launcher', 'RustDedicated'))]
+        srcds_command += [srcds_command[0]] # This is here because Unity is dumb and doesn't pass this shit properly.
         # Goes to the daemon.
         daemon_required = {}
-        daemon_config = self.config.get('daemon.srcds_args', {})
+        daemon_config = self.config.get('daemon.unity_args', {})
         #self._applyDefaultsTo(daemon_required, daemon_config, 'Configuration entry {key!r} is not present in daemon.srcds_args.  Default value {value!r} is set.')
         srcds_command += self._buildArgs('-', daemon_config, daemon_required)
 
         # Sent to Game_srv.so or whatever.
-        game_required = {}
+        ip, port = self.config.get('monitor.ip', '127.0.0.1'), self.config.get('monitor.port', 27015)
+        ip, port = self.config.get('auth.rcon.ip', ip), self.config.get('auth.rcon.port', port)
+        passwd = self.config.get('auth.rcon.password', None)
+        game_required = {
+            #'rcon.web': 1,
+            'rcon.ip': ip,
+            'rcon.port': port,
+            'rcon.password': passwd
+        }
         game_args = self.config.get('daemon.game_args', {})
         #self._applyDefaultsTo(game_required, game_args, 'Configuration entry {key!r} is not present in daemon.game_args.  Default value {value!r} is set.')
         srcds_command += self._buildArgs('+', game_args, game_required)
 
-        niceness = self.config.get('daemon.niceness', 0)
-        if niceness != 0:
-            srcds_command = ['nice', '-n', niceness] + srcds_command
-
         with Chdir(self.gamedir):
             #cmd_daemonize(srcds_command, echo=True, critical=True)
-            self.asyncProcess = LoggedProcess(srcds_command, 'srcds', echo=True, PTY=True, debug=False)
+            self.asyncProcess = LoggedProcess(srcds_command, srcds_command[0], echo=True, PTY=True, debug=False)
             self.asyncProcess.Start()
 
         self.find_process()

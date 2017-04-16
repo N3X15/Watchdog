@@ -47,29 +47,29 @@ class APICallError(Exception):
     def __init__(self, raw_req, raw_res):
         self.raw_request = raw_req
         self.raw_response = raw_res
-        
+
 
 class APICallErrorResponse(APICallError):
     def __init__(self, raw_req, raw_res):
         APICallError.__init__(self, raw_req, raw_res)
         self.message = raw_res['error']
-        
+
     def __str__(self):
         return 'API responded with error: {!r}'.format(self.message)
-        
+
 
 class APICallKeyError(APICallError):
     def __init__(self, raw_req, raw_res, key):
         APICallError.__init__(self, raw_req, raw_res)
         self.key = key
-        
+
     def __str__(self):
         return 'Expected key {!r} is missing from response.'.format(self.key)
-    
+
 class APICallBadResponse(APICallError):
     def __str__(self):
         return 'API responded with invalid XML.'
-    
+
 class APICallBadResponseStructure(APICallError):
     def __str__(self):
         return 'API responded with invalid XML structure.'
@@ -77,7 +77,7 @@ class APICallBadResponseStructure(APICallError):
 def expectKeyIn(key,raw_req,raw_res):
     if not isinstance(raw_res,dict) or key not in raw_res:
         raise APICallError(raw_req,raw_res)
-    
+
 LAST_REQUEST=None
 def SteamAPICall(path, rawargs={}):
     with log.debug('Steam API Call[%s: %s]', path, rawargs):
@@ -87,7 +87,7 @@ def SteamAPICall(path, rawargs={}):
             args = '?%s' % (urllib.parse.urlencode(args))
         else:
             args = '?%s' % (urllib.urlencode(args))
-        
+
         url = "%s/%s/%s" % (gSteamAPI, path, args)
         try:
             if gPy3k:
@@ -97,19 +97,19 @@ def SteamAPICall(path, rawargs={}):
         except Exception:
             log.error("API Call failed. URL: %r", url)
             return False
-        
+
         try:
             dom = xml.dom.minidom.parseString(raw)
         except Exception:
             raise APICallBadResponse(url, raw)
             # log.error("API Call - Failed to parse XML result\n\tURL:\t'%s'\n=== Raw ===\n%s\n===========",url, raw)
             return False
-        
+
         response = dom.getElementsByTagName('response')
         if not len(response):
             raise APICallBadResponseStructure(url, raw)
             return False
-        
+
         ret = {}
         for c in response[0].childNodes:
             if c.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
@@ -121,18 +121,18 @@ def SteamAPICall(path, rawargs={}):
                     ret[c.nodeName] = False
                 else:
                     ret[c.nodeName] = c.childNodes[0].data
-        
+
         # Check structure
         # { response: { ... }}
         if not isinstance(ret,dict):
             log.info(type(ret))
             raise APICallBadResponseStructure(url, raw)
-            
+
         expectKeyIn('success', url, ret)
         LAST_REQUEST=url
         if ret['success'] != True:
             raise APICallErrorResponse(url, ret)
-        
+
         return ret
 
 # 1 Up to date, 0 not, -1 call failed
@@ -144,6 +144,8 @@ def RunCheck(no, appid, ver):
         response = SteamAPICall('ISteamApps/UpToDateCheck/v0001', { 'appid': appid, 'version': ver })
         expectKeyIn('success', LAST_REQUEST, response)
         expectKeyIn('up_to_date', LAST_REQUEST, response)
+        if not response['up_to_date']:
+            expectKeyIn('required_version', LAST_REQUEST, response)
     except APICallError as e:
         with log.error('[API Call #%u] %s', no, e):
             log.error("Raw Request: %s", e.raw_request)
@@ -186,8 +188,8 @@ def CheckForUpdates(steaminffile, quiet=False):
         log.error('INVALID steam.inf!')
         log.error(repr(vals))
         return True
-    
-    if not quiet: 
+
+    if not quiet:
         log.info("Checking %s... - AppID: %s, Version: %s", game, appID, ver)
     with log:
         # According to Tony, this API call can sometimes return out of date incorrectly (yay!)
@@ -209,12 +211,12 @@ def CheckForUpdates(steaminffile, quiet=False):
                 time.sleep(5)
             lastattempt = ret
             attempt += 1
-    
+
 if __name__ == '__main__':
     if not len(sys.argv) == 2:
         print("Usage: ./srcupdatecheck /path/to/steam.inf")
         sys.exit(-1)
-     
+
     if CheckForUpdates(sys.argv[1]):
         sys.exit(7)
     else:

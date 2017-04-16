@@ -174,9 +174,10 @@ class WatchdogEngine(object):
                             continue
                         self.process = proc
                         log.info('Found gameserver running as process #%s', self.process.pid)
-                        break
+                        return
                 except psutil.AccessDenied:
                     continue
+            log.warn('Unable to find process for image name %s!',self.processName)
 
     def end_process(self):
         while not self.update_only and self.process is not None and self.process.is_running():
@@ -235,7 +236,7 @@ class WatchdogEngine(object):
             log.warn('Updates detected')
             self.updateAlert(componentName)
             self.applyUpdates(restart=True)
-            
+
     def updateFiles(self, oldfiles, new_only=False):
         with log.info('Installing new files...'):
             for destfile, filemeta in self.addon_files.iteritems():
@@ -253,7 +254,7 @@ class WatchdogEngine(object):
                         os.remove(oldfile)
                     self.addon_deletables.remove(oldfile)
         self.writeDeletables()
-        
+
     def readDeletables(self):
         self.addon_deletables = []
         if os.path.isfile(self.deletables_file):
@@ -262,7 +263,7 @@ class WatchdogEngine(object):
                     line = line.strip()
                     if line == '': continue
                     self.addon_deletables.append(line)
-                        
+
     def writeDeletables(self):
         with open(self.deletables_file,'w') as f:
             for deletable in self.addon_deletables:
@@ -283,7 +284,7 @@ class WatchdogEngine(object):
             restartComponent = 'addon'
         if self.updateConfig():
             restartComponent = 'config'
-            
+
         self.updateFiles(self.old_files)
 
         if not self.update_only:

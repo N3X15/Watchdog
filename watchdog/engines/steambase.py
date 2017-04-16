@@ -3,15 +3,16 @@ Created on Apr 27, 2015
 
 @author: Rob
 '''
+import collections
 import os
 import sys
-import collections
-from watchdog.steam import srcupdatecheck
 
-from buildtools.config import Config
 from buildtools.bt_logging import log
-from buildtools.os_utils import cmd
-from watchdog.engines.base import WatchdogEngine, ConfigAddon
+from buildtools.config import YAMLConfig, delimget
+from buildtools.os_utils import cmd, cmd_output
+from watchdog.engines.base import ConfigAddon, WatchdogEngine
+from watchdog.steam import srcupdatecheck
+from watchdog.steam.vdf import VDFNode
 
 STEAMCMD = ''
 
@@ -26,7 +27,7 @@ class SteamContent(object):
 
     @classmethod
     def LoadDefs(cls, dirname):
-        yml = Config(None, template_dir='/')
+        yml = YAMLConfig(None, template_dir='/')
         yml.LoadFromFolder(dirname)
         # pprint(yml.cfg))
         for appIdent, appConfig in yml.get('gamelist', {}).items():
@@ -49,9 +50,9 @@ class SteamContent(object):
     @classmethod
     def GlobalConfigure(cls, cfg):
         global STEAMCMD
-        cls.Username = cfg.get('auth.steam.username', None)
-        cls.Password = cfg.get('auth.steam.password', None)
-        cls.SteamGuard = cfg.get('auth.steam.steamguard', None)
+        cls.Username = delimget(cfg, 'auth.steam.username', None)
+        cls.Password = delimget(cfg, 'auth.steam.password', None)
+        cls.SteamGuard = delimget(cfg, 'auth.steam.steamguard', None)
 
         STEAMCMD = os.path.expanduser(os.path.join(cfg.get('paths.steamcmd'), 'steamcmd.sh'))
 
@@ -67,7 +68,9 @@ class SteamContent(object):
         self.destination = ''
         self.steamInf = ''
         self.validate = False
-        self.forced_platform=None
+        self.forced_platform = None
+        self.steamInfFilename = delimget(cfg, 'steam_inf.filename', 'steam.inf')
+        self.steamInfGenerate = delimget(cfg, 'steam_inf.generate', False)
 
     def Configure(self, cfg, args):
         if self.requires_login:
@@ -76,10 +79,10 @@ class SteamContent(object):
                 sys.exit(1)
         self.validate = args.validate
         self.destination = os.path.expanduser(cfg.get('dir', '~/steam/content/{}'.format(self.appID)))
-        self.forced_platform = cfg.get('force-platform',None)
-        self.steamInf = None
+        self.forced_platform = cfg.get('force-platform', None)
+        self.steamInf = os.path.join(self.destination, self.steamInfFilename)
         if self.game != '':
-            self.steamInf = os.path.join(self.destination, self.game, cfg.get('steam_inf','steam.inf'))
+            self.steamInf = os.path.join(self.destination, self.game, self.steamInfFilename)
 
     def IsUpdated(self):
         'Returns false if outdated.'
@@ -88,6 +91,52 @@ class SteamContent(object):
         if not self.updatable:
             return os.path.isfile(self.steamInf)
         return not srcupdatecheck.CheckForUpdates(self.steamInf, quiet=True)
+
+    def GenerateSteamInf(self):
+        # steam> login anonymous
+        # steam> app_info_print 376030
+        with log.info('Generating steam.inf for %s (#%s)...', self.appName, self.appID):
+            log.info('Querying Steam database... (This WILL take a while. Be patient.)')
+            login = ['anonymous']
+            if self.requires_login and self.Username and self.Password:
+                login = [self.Username, self.Password]
+                if self.SteamGuard:
+                    login.append(self.SteamGuard)
+            if self.forced_platform:
+                login += ['+@sSteamCmdForcePlatformType', self.forced_platform]
+            shell_cmd = [STEAMCMD,
+                         '+login'] + login + [
+                '+app_info_print', self.appID,
+                '+quit']
+            stdout, stderr = cmd_output(shell_cmd, echo=False, critical=True)
+
+            log.info('Generating file...)')
+            buf = ''
+            inDepotInfo = False
+            for line in (stdout + stderr).split('\n'):
+                if line.strip() == '"{}"'.format(self.appID):
+                    inDepotInfo = True
+                if inDepotInfo:
+                    buf += line + '\n'
+            parsed = VDFNode.Parse(buf)
+            parsed = parsed[str(self.appID)]
+            import yaml
+            with open('steam.yml', 'w') as f:
+                yaml.dump(parsed, f, default_flow_style=False)
+            with open('steam.inf', 'w') as f:
+                ver = delimget(parsed, 'depots.branches.public.buildid')
+                f.write('PatchVersion={}\n'.format(ver))
+                f.write('ClientVersion={}\n'.format(ver))
+                f.write('ServerVersion={}\n'.format(ver))
+                f.write('ProductName={}\n'.format(self.game))
+                f.write('appID={}\n'.format(self.appID))
+                f.write('ServerAppID={}\n'.format(self.appID))
+                # PatchVersion=3475087
+                # ClientVersion=3475087
+                # ServerVersion=3475087
+                # ProductName=tf
+                # appID=440
+                # ServerAppID=232250
 
     def Update(self):
         with log.info('Updating content for %s (#%s)...', self.appName, self.appID):
@@ -107,6 +156,8 @@ class SteamContent(object):
                 '+quit'
             ]
             cmd(shell_cmd, echo=False, critical=True)
+            if self.steamInfGenerate:
+                self.GenerateSteamInf()
         if self.validate:
             self.validate = False
 
@@ -130,18 +181,18 @@ class SteamBase(WatchdogEngine):
                 continue
             app.Configure(appCfg, self.cmdline_args)
             self.content[app.appID] = app
-            #print(repr(appCfg))
+            # print(repr(appCfg))
             target = appCfg.get('target', None)
             if target is None:
                 target = app.destination == self.gamedir
             elif target:
-                    log.info('Game %r forced to be target game',app.appName)
+                log.info('Game %r forced to be target game', app.appName)
             if target:
                 self.game_content = app
                 log.info('Found target game: %s', app.appName)
 
-        if cfg.get('repos.config',None) is not None:
-            self.configrepo = ConfigAddon(self, {"repo":cfg.get('repos.config')}, os.path.join(self.gamedir, self.game_content.game))
+        if cfg.get('repos.config', None) is not None:
+            self.configrepo = ConfigAddon(self, {"repo": cfg.get('repos.config')}, os.path.join(self.gamedir, self.game_content.game))
 
     def checkForContentUpdates(self):
         for appID, content in self.content.items():
