@@ -3,6 +3,7 @@ from watchdog.engines.srcds import SourceEngine
 from watchdog.engines.gmod import GModEngine
 from watchdog.engines.base import EngineType
 from watchdog.engines.rust import RustEngine
+from watchdog.engines.factorio import FactorioEngine
 
 
 def GetEngine(globalCfg, arguments):

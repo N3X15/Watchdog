@@ -33,7 +33,7 @@ for pkg, modules in import_packages.items():
             importlib.import_module(module)
     except:
         failed.append(pkg)
-        
+
 if len(failed)>0:
     all_failed={k:v for k,v in import_packages.iteritems() if k in failed}
     print('Failed to import modules {modules}, which means some packages are not installed.  Please run "sudo pip install {pkgs}".'.format(modules=', '.join([str(x) for x in all_failed.values()]), pkgs=' '.join(all_failed.keys())))
@@ -42,6 +42,7 @@ if len(failed)>0:
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir, 'lib', 'buildtools'))
 sys.path.append(os.path.join(script_dir, 'lib', 'valve'))
+sys.path.append(os.path.join(script_dir, 'lib', 'SourceLib'))
 # print(repr(sys.path))
 
 import yaml
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 
     utils.script_dir = script_dir
     utils.config_dir = os.path.abspath(os.getcwd())
-    
+
     logging.getLogger("requests").setLevel(logging.WARNING)
 
     try:
@@ -77,7 +78,7 @@ if __name__ == '__main__':
         config = Config(cfgPath, {}, template_dir='/', variables=jinja_vars)
         config.LoadFromFolder(os.path.join(os.getcwd(), 'conf.d/'), variables=jinja_vars)
         config.set('paths.script', script_dir)
-        
+
         os_utils.ensureDirExists(utils.getCacheDir(), mode=0o700, noisy=True)
         with open(os.path.join(utils.getCacheDir(),'configuration.yml'),'w') as f:
             yaml.dump(config.cfg,f)

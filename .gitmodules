@@ -4,3 +4,6 @@
 [submodule "lib/valve"]
 	path = lib/valve
 	url = https://github.com/Holiverh/python-valve.git
+[submodule "lib/SourceLib"]
+	path = lib/SourceLib
+	url = https://github.com/frostschutz/SourceLib.git
